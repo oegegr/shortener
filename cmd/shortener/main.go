@@ -13,7 +13,7 @@ import (
 func main() {
 
 	urlRepository := repository.NewInMemoryUrlRepository()
-	urlService := service.NewShortnerService(urlRepository, "http://foo")
+	urlService := service.NewShortnerService(urlRepository, "http://127.0.0.1:8080", 8)
 	shortnerHandler := handler.NewShortnerHandler(*urlService) 
 
 	mux := http.NewServeMux()
