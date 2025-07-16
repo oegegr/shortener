@@ -1,3 +1,3 @@
-module github.com/oegegr/shortener.git
+module github.com/oegegr/shortener
 
 go 1.24.4
