@@ -14,7 +14,7 @@ var (
 
 type URLRepository interface {
 	CreateURL(urlItem model.URLItem) error
-	FindURLById(id string) (*model.URLItem, error)
+	FindURLByID(id string) (*model.URLItem, error)
 	Exists(id string) bool
 }
 
@@ -40,7 +40,7 @@ func (repo *InMemoryURLRepository) CreateURL(urlItem model.URLItem) error {
 	return nil
 }
 
-func (repo *InMemoryURLRepository) FindURLById(id string) (*model.URLItem, error) {
+func (repo *InMemoryURLRepository) FindURLByID(id string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	url, ok := repo.data[id]

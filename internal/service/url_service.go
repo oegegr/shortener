@@ -39,7 +39,7 @@ func (s *ShortenURLService) GetShortURL(originalURL string) (string, error) {
 }
 
 func (s *ShortenURLService) GetOriginalURL(shortCode string) (string, error) {
-	urlItem, err := s.urlRepository.FindURLById(shortCode)
+	urlItem, err := s.urlRepository.FindURLByID(shortCode)
 	if err != nil {
 		return "", err
 	}
