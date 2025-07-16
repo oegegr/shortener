@@ -61,6 +61,7 @@ func (app *ShortnerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortUrl))
 }
 
