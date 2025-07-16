@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"net/url"
 )
 
 var (
@@ -11,25 +10,14 @@ var (
 )
 
 type UrlItem struct {
-	Id string 
-	Url string 
+	ID  string
+	URL string
 }
 
 
-func (s *UrlItem) Validate() error {
-	if _, err := url.ParseRequestURI(s.Url); err != nil {
-		return ErrInvalidURL
+func NewURLItem(url string, id string) (*UrlItem) {
+	return &UrlItem{
+		URL: url,
+		ID:  id,
 	}
-	if len(s.Id) == 0 {
-		return ErrEmptyCode
-	}
-	return nil
-}
-
-func NewUrlItem(url string, id string) (*UrlItem, error) {
-	su := &UrlItem{
-		Url: url,
-		Id:   id,
-	}
-	return su, su.Validate()
 }

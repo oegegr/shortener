@@ -1,69 +1,66 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"time"
-	"errors"
 
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
 )
 
 var (
-	maxCollisionAttempts = 10
-	retryCollisionTimeout, _ = time.ParseDuration("0.1s")
+	maxCollisionAttempts          = 10
+	retryCollisionTimeout, _      = time.ParseDuration("0.1s")
 	ErrServiceFailedToGetShortUrl = errors.New("failed to get short url")
 )
 
-type UrlShortner interface {
-	GetShortUrl(originalUrl string) (string, error)
-	GetOriginalUrl(shortUrl string) (string, error)
+type URLShortner interface {
+	GetShortURL(originalUrl string) (string, error)
+	GetOriginalURL(shortUrl string) (string, error)
 }
 
-type ShortenUrlService struct {
-	urlRepository  repository.UrlRepository
+type ShortenURLService struct {
+	urlRepository  repository.URLRepository
 	shortUrlDomain string
 	shortUrlLength int
 }
 
-func NewShortnerService(repository repository.UrlRepository, domain string, urlLength int) *ShortenUrlService {
-	return &ShortenUrlService{urlRepository: repository, shortUrlDomain: domain, shortUrlLength: urlLength}
+func NewShortnerService(repository repository.URLRepository, domain string, urlLength int) *ShortenURLService {
+	return &ShortenURLService{urlRepository: repository, shortUrlDomain: domain, shortUrlLength: urlLength}
 }
 
-func (s *ShortenUrlService) GetShortUrl(originalUrl string) (string, error) {
-	urlItem, err := s.tryGetUrlItem(originalUrl)
+func (s *ShortenURLService) GetShortURL(originalUrl string) (string, error) {
+	urlItem, err := s.tryGetURLItem(originalUrl)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/%s", s.shortUrlDomain, urlItem.Id), nil
+	return fmt.Sprintf("%s/%s", s.shortUrlDomain, urlItem.ID), nil
 }
 
-func (s *ShortenUrlService) GetOriginalUrl(shortCode string) (string, error) {
-	urlItem, err := s.urlRepository.FindUrlById(shortCode)
+func (s *ShortenURLService) GetOriginalURL(shortCode string) (string, error) {
+	urlItem, err := s.urlRepository.FindURLById(shortCode)
 	if err != nil {
 		return "", err
 	}
 
-	return urlItem.Url, nil
+	return urlItem.URL, nil
 }
 
-func (s *ShortenUrlService) getUrlItem(originalUrl string) (*model.UrlItem, error) {
-		shortCode := GenerateShortCode(s.shortUrlLength) 
-		urlItem, err := model.NewUrlItem(originalUrl, shortCode)
-		if err != nil {
-			return nil, err
-		}
-		err = s.urlRepository.CreateUrl(*urlItem)
-		if err != nil {
-			return nil, err
-		}
-		return urlItem, nil
+func (s *ShortenURLService) getURLItem(originalUrl string) (*model.UrlItem, error) {
+	shortCode := GenerateShortCode(s.shortUrlLength)
+	urlItem := model.NewURLItem(originalUrl, shortCode)
+	err := s.urlRepository.CreateURL(*urlItem)
+	if err != nil {
+		return nil, err
+	}
+	return urlItem, nil
 }
 
-func (s *ShortenUrlService) tryGetUrlItem(originalUrl string) (*model.UrlItem, error) {
+func (s *ShortenURLService) tryGetURLItem(originalUrl string) (*model.UrlItem, error) {
 	var err error
 	for range maxCollisionAttempts {
-		urlItem, err := s.getUrlItem(originalUrl)
+		urlItem, err := s.getURLItem(originalUrl)
 		if err == nil {
 			return urlItem, nil
 		}
