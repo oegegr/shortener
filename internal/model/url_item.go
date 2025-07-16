@@ -9,14 +9,13 @@ var (
 	ErrEmptyCode  = errors.New("short code cannot be empty")
 )
 
-type UrlItem struct {
+type URLItem struct {
 	ID  string
 	URL string
 }
 
-
-func NewURLItem(url string, id string) (*UrlItem) {
-	return &UrlItem{
+func NewURLItem(url string, id string) *URLItem {
+	return &URLItem{
 		URL: url,
 		ID:  id,
 	}

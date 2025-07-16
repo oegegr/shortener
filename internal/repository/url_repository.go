@@ -13,8 +13,8 @@ var (
 )
 
 type URLRepository interface {
-	CreateURL(urlItem model.UrlItem) error
-	FindURLById(id string) (*model.UrlItem, error)
+	CreateURL(urlItem model.URLItem) error
+	FindURLById(id string) (*model.URLItem, error)
 	Exists(id string) bool
 }
 
@@ -29,7 +29,7 @@ func NewInMemoryURLRepository() *InMemoryURLRepository {
 	}
 }
 
-func (repo *InMemoryURLRepository) CreateURL(urlItem model.UrlItem) error {
+func (repo *InMemoryURLRepository) CreateURL(urlItem model.URLItem) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	_, ok := repo.data[urlItem.ID]
@@ -40,7 +40,7 @@ func (repo *InMemoryURLRepository) CreateURL(urlItem model.UrlItem) error {
 	return nil
 }
 
-func (repo *InMemoryURLRepository) FindURLById(id string) (*model.UrlItem, error) {
+func (repo *InMemoryURLRepository) FindURLById(id string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	url, ok := repo.data[id]

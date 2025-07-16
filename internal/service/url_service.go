@@ -12,30 +12,30 @@ import (
 var (
 	maxCollisionAttempts          = 10
 	retryCollisionTimeout, _      = time.ParseDuration("0.1s")
-	ErrServiceFailedToGetShortUrl = errors.New("failed to get short url")
+	ErrServiceFailedToGetShortURL = errors.New("failed to get short url")
 )
 
 type URLShortner interface {
-	GetShortURL(originalUrl string) (string, error)
-	GetOriginalURL(shortUrl string) (string, error)
+	GetShortURL(originalURL string) (string, error)
+	GetOriginalURL(shortURL string) (string, error)
 }
 
 type ShortenURLService struct {
 	urlRepository  repository.URLRepository
-	shortUrlDomain string
-	shortUrlLength int
+	shortURLDomain string
+	shortURLLength int
 }
 
 func NewShortnerService(repository repository.URLRepository, domain string, urlLength int) *ShortenURLService {
-	return &ShortenURLService{urlRepository: repository, shortUrlDomain: domain, shortUrlLength: urlLength}
+	return &ShortenURLService{urlRepository: repository, shortURLDomain: domain, shortURLLength: urlLength}
 }
 
-func (s *ShortenURLService) GetShortURL(originalUrl string) (string, error) {
-	urlItem, err := s.tryGetURLItem(originalUrl)
+func (s *ShortenURLService) GetShortURL(originalURL string) (string, error) {
+	urlItem, err := s.tryGetURLItem(originalURL)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/%s", s.shortUrlDomain, urlItem.ID), nil
+	return fmt.Sprintf("%s/%s", s.shortURLDomain, urlItem.ID), nil
 }
 
 func (s *ShortenURLService) GetOriginalURL(shortCode string) (string, error) {
@@ -47,9 +47,9 @@ func (s *ShortenURLService) GetOriginalURL(shortCode string) (string, error) {
 	return urlItem.URL, nil
 }
 
-func (s *ShortenURLService) getURLItem(originalUrl string) (*model.UrlItem, error) {
-	shortCode := GenerateShortCode(s.shortUrlLength)
-	urlItem := model.NewURLItem(originalUrl, shortCode)
+func (s *ShortenURLService) getURLItem(originalURL string) (*model.URLItem, error) {
+	shortCode := GenerateShortCode(s.shortURLLength)
+	urlItem := model.NewURLItem(originalURL, shortCode)
 	err := s.urlRepository.CreateURL(*urlItem)
 	if err != nil {
 		return nil, err
@@ -57,10 +57,10 @@ func (s *ShortenURLService) getURLItem(originalUrl string) (*model.UrlItem, erro
 	return urlItem, nil
 }
 
-func (s *ShortenURLService) tryGetURLItem(originalUrl string) (*model.UrlItem, error) {
+func (s *ShortenURLService) tryGetURLItem(originalURL string) (*model.URLItem, error) {
 	var err error
 	for range maxCollisionAttempts {
-		urlItem, err := s.getURLItem(originalUrl)
+		urlItem, err := s.getURLItem(originalURL)
 		if err == nil {
 			return urlItem, nil
 		}

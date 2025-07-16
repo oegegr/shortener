@@ -21,18 +21,18 @@ func (app *ShortnerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	shortUrl := r.PathValue("short_url")
-	if shortUrl == "" {
+	shortURL := r.PathValue("short_url")
+	if shortURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	originalUrl, err := app.urlService.GetOriginalURL(shortUrl)
+	originalURL, err := app.urlService.GetOriginalURL(shortURL)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	http.Redirect(w, r, originalUrl, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
 }
 
 func (app *ShortnerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func (app *ShortnerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortUrl, err := app.urlService.GetShortURL(url)
+	shortURL, err := app.urlService.GetShortURL(url)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -62,12 +62,12 @@ func (app *ShortnerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(shortUrl))
+	w.Write([]byte(shortURL))
 }
 
 func validateURL(originalURL string) error {
 	if _, err := url.ParseRequestURI(originalURL); err != nil {
-		return err 
+		return err
 	}
 	return nil
 }
