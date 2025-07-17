@@ -68,11 +68,10 @@ func TestShortenUrl(t *testing.T) {
 	t.Run("Valid Shortening", func(t *testing.T) {
 		body := strings.NewReader("https://google.com")
 		req := httptest.NewRequest(http.MethodPost, "/", body)
-		// req.Header.Set("Content-Type", "text/plain")
 		req.Header.Set("Content-Type", "text/plain")
 		w := httptest.NewRecorder()
 		
-		service.On("GetShortURL", "https://google.com").Return("abc123", nil)
+		service.On("GetShortURL", "https://google.com").Return("abc123", nil).Once()
 		app.ShortenURL(w, req)
 		
 		resp := w.Result()
@@ -98,21 +97,21 @@ func TestShortenUrl(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
 	})
 
-	t.Run("Read Body Error", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/", errReader(0))
-		w := httptest.NewRecorder()
-		app.ShortenURL(w, req)
-		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
-	})
-
 	t.Run("Service Error", func(t *testing.T) {
 		body := strings.NewReader("https://google.com")
 		req := httptest.NewRequest(http.MethodPost, "/", body)
 		w := httptest.NewRecorder()
 		
-		service.On("GetShortURL", "https://google.com").Return("", errors.New("error"))
+		service.On("GetShortURL", "https://google.com").Return("", errors.New("error")).Once()
 		app.ShortenURL(w, req)
 		
+		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+	})
+
+	t.Run("Read Body Error", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/", errReader(0))
+		w := httptest.NewRecorder()
+		app.ShortenURL(w, req)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
 	})
 }
