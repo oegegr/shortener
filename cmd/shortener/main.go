@@ -18,8 +18,8 @@ func main() {
 	urlRepository := repository.NewInMemoryURLRepository()
 	urlService := service.NewShortnerService(
 		urlRepository, 
-		config.AppConfig.ShortUrlDomain, 
-		config.AppConfig.ShortUrlLength, 
+		config.AppConfig.ShortURLDomain, 
+		config.AppConfig.ShortURLLength, 
 		&service.RandomShortCodeProvider{})
 	shortnerHandler := handler.NewShortnerHandler(urlService)
 
