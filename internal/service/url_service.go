@@ -68,7 +68,7 @@ func (s *ShortenURLService) getURLItem(originalURL string) (*model.URLItem, erro
 }
 
 func (s *ShortenURLService) tryGetURLItem(originalURL string) (*model.URLItem, error) {
-	var err error = repository.ErrRepoAlreadyExists
+	var err = repository.ErrRepoAlreadyExists
 	for range maxCollisionAttempts {
 		urlItem, err := s.getURLItem(originalURL)
 		if err == nil {

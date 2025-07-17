@@ -10,11 +10,11 @@ import (
 )
 
 type ShortnerHandler struct {
-	UrlService service.URLShortner
+	URLService service.URLShortner
 }
 
 func NewShortnerHandler(service service.URLShortner) ShortnerHandler {
-	return ShortnerHandler{UrlService: service}
+	return ShortnerHandler{URLService: service}
 }
 
 func (app *ShortnerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func (app *ShortnerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http
 		return
 	}
 
-	originalURL, err := app.UrlService.GetOriginalURL(shortURL)
+	originalURL, err := app.URLService.GetOriginalURL(shortURL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -56,7 +56,7 @@ func (app *ShortnerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL, err := app.UrlService.GetShortURL(url)
+	shortURL, err := app.URLService.GetShortURL(url)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

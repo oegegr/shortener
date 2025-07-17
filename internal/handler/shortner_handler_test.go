@@ -24,6 +24,7 @@ func TestRedirectToOriginalUrl(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.RedirectToOriginalURL(w, req)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+		defer w.Result().Body.Close()
 	})
 
 	t.Run("Empty Short URL", func(t *testing.T) {
@@ -31,6 +32,7 @@ func TestRedirectToOriginalUrl(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.RedirectToOriginalURL(w, req)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+		defer w.Result().Body.Close()
 	})
 
 	t.Run("Service Error", func(t *testing.T) {
@@ -41,6 +43,7 @@ func TestRedirectToOriginalUrl(t *testing.T) {
 		app.RedirectToOriginalURL(w, req)
 		
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+		defer w.Result().Body.Close()
 	})
 
 	t.Run("Valid Redirect", func(t *testing.T) {
@@ -58,6 +61,7 @@ func TestRedirectToOriginalUrl(t *testing.T) {
 		resp := w.Result()
 		assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode)
 		assert.Equal(t, "https://google.com", resp.Header.Get("Location"))
+		defer w.Result().Body.Close()
 	})
 }
 
@@ -76,10 +80,12 @@ func TestShortenUrl(t *testing.T) {
 		
 		resp := w.Result()
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		defer resp.Body.Close()
 		
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 		assert.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
 		assert.Equal(t, "abc123", string(bodyBytes))
+		defer w.Result().Body.Close()
 	})
 
 	t.Run("Invalid Method", func(t *testing.T) {
@@ -87,6 +93,7 @@ func TestShortenUrl(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.ShortenURL(w, req)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+		defer w.Result().Body.Close()
 	})
 
 	t.Run("Invalid Content-type", func(t *testing.T) {
@@ -95,6 +102,7 @@ func TestShortenUrl(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.ShortenURL(w, req)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+		defer w.Result().Body.Close()
 	})
 
 	t.Run("Service Error", func(t *testing.T) {
@@ -106,6 +114,7 @@ func TestShortenUrl(t *testing.T) {
 		app.ShortenURL(w, req)
 		
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+		defer w.Result().Body.Close()
 	})
 
 	t.Run("Read Body Error", func(t *testing.T) {
@@ -113,6 +122,7 @@ func TestShortenUrl(t *testing.T) {
 		w := httptest.NewRecorder()
 		app.ShortenURL(w, req)
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+		defer w.Result().Body.Close()
 	})
 }
 
