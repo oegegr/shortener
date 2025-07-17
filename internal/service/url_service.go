@@ -9,33 +9,36 @@ import (
 	"github.com/oegegr/shortener/internal/repository"
 )
 
+const (
+	maxCollisionAttempts  = 10
+	retryCollisionTimeout = 100 * time.Millisecond
+)
+
 var (
-	maxCollisionAttempts          = 10
-	retryCollisionTimeout, _      = time.ParseDuration("0.1s")
 	ErrServiceFailedToGetShortURL = errors.New("failed to get short url")
 )
 
-type URLShortner interface {
+type URLShortener interface {
 	GetShortURL(originalURL string) (string, error)
 	GetOriginalURL(shortURL string) (string, error)
 }
 
 type ShortenURLService struct {
-	urlRepository  repository.URLRepository
-	shortURLDomain string
-	shortURLLength int
+	urlRepository     repository.URLRepository
+	shortURLDomain    string
+	shortURLLength    int
 	shortCodeProvider ShortCodeProvider
 }
 
-func NewShortnerService(
-	repository repository.URLRepository, 
-	domain string, 
+func NewShortenerService(
+	repository repository.URLRepository,
+	domain string,
 	urlLength int,
 	codeProvider ShortCodeProvider) *ShortenURLService {
 	return &ShortenURLService{
-		urlRepository:  repository,
-		shortURLDomain: domain,
-		shortURLLength: urlLength,
+		urlRepository:     repository,
+		shortURLDomain:    domain,
+		shortURLLength:    urlLength,
 		shortCodeProvider: codeProvider,
 	}
 }

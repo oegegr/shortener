@@ -5,36 +5,37 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/oegegr/shortener/internal/config"
 	"github.com/oegegr/shortener/internal/handler"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
-	"github.com/oegegr/shortener/internal/config"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
-	config.ParseFlags()
+	c := config.NewConfig()
 	urlRepository := repository.NewInMemoryURLRepository()
-	urlService := service.NewShortnerService(
-		urlRepository, 
-		config.AppConfig.ShortURLDomain, 
-		config.AppConfig.ShortURLLength, 
+	urlService := service.NewShortenerService(
+		urlRepository,
+		c.ShortURLDomain,
+		c.ShortURLLength,
 		&service.RandomShortCodeProvider{})
-	shortnerHandler := handler.NewShortnerHandler(urlService)
+	ShortenerHandler := handler.NewShortenerHandler(urlService)
 
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
-	router.HandleFunc("/{short_url}", shortnerHandler.RedirectToOriginalURL)
-	router.HandleFunc("/", shortnerHandler.ShortenURL)
+	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
+	router.Post("/", ShortenerHandler.ShortenURL)
 
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
 
 	go func() {
 		fmt.Println("Server starting")
-		if err := http.ListenAndServe(config.AppConfig.RunAddr, router); err != nil {
-			fmt.Println("Server stopped")
+
+		if err := http.ListenAndServe(c.RunAddr, router); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Server stopped: %v\n", err)
 			stop()
 		}
 	}()

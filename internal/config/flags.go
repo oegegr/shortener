@@ -8,11 +8,11 @@ type Config struct {
 	ShortURLLength int
 }
 
-var AppConfig Config
-
-func ParseFlags() {
-	flag.StringVar(&AppConfig.RunAddr, "a", ":8080", "address to startup server")
-	flag.StringVar(&AppConfig.ShortURLDomain, "b", "http://localhost:8080", "domain to use for shrten urls")
-	flag.IntVar(&AppConfig.ShortURLLength, "c", 8, "length of generated short url")
+func NewConfig() *Config {
+	cfg := &Config{}
+	flag.StringVar(&cfg.RunAddr, "a", ":8080", "address to startup server")
+	flag.StringVar(&cfg.ShortURLDomain, "b", "http://localhost:8080", "domain to use for shrten urls")
+	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
 	flag.Parse()
+	return cfg
 }
