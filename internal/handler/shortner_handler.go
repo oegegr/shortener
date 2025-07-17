@@ -5,31 +5,32 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/oegegr/shortener/internal/service"
 )
 
 type ShortnerHandler struct {
-	urlService service.ShortenURLService
+	UrlService service.URLShortner
 }
 
-func NewShortnerHandler(service service.ShortenURLService) ShortnerHandler {
-	return ShortnerHandler{urlService: service}
+func NewShortnerHandler(service service.URLShortner) ShortnerHandler {
+	return ShortnerHandler{UrlService: service}
 }
 
 func (app *ShortnerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "wrong method", http.StatusBadRequest)
 		return
 	}
-	shortURL := r.PathValue("short_url")
+	shortURL := chi.URLParam(r, "short_url")
 	if shortURL == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "missing short url at params", http.StatusBadRequest)
 		return
 	}
 
-	originalURL, err := app.urlService.GetOriginalURL(shortURL)
+	originalURL, err := app.UrlService.GetOriginalURL(shortURL)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
@@ -37,26 +38,32 @@ func (app *ShortnerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http
 
 func (app *ShortnerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "wrong http method", http.StatusBadRequest)
 		return
 	}
+
+	if contentType := r.Header.Get("Content-type"); contentType != "text/plain" {
+		http.Error(w, "wrong content type", http.StatusBadRequest)
+		return
+	}
+
 	body, err := io.ReadAll(r.Body)
 	url := string(body)
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "missing post body", http.StatusBadRequest)
 		return
 	}
 
 	err = validateURL(url)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "invalid url", http.StatusBadRequest)
 		return
 	}
 
-	shortURL, err := app.urlService.GetShortURL(url)
+	shortURL, err := app.UrlService.GetShortURL(url)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

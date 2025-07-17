@@ -24,10 +24,20 @@ type ShortenURLService struct {
 	urlRepository  repository.URLRepository
 	shortURLDomain string
 	shortURLLength int
+	shortCodeProvider ShortCodeProvider
 }
 
-func NewShortnerService(repository repository.URLRepository, domain string, urlLength int) *ShortenURLService {
-	return &ShortenURLService{urlRepository: repository, shortURLDomain: domain, shortURLLength: urlLength}
+func NewShortnerService(
+	repository repository.URLRepository, 
+	domain string, 
+	urlLength int,
+	codeProvider ShortCodeProvider) *ShortenURLService {
+	return &ShortenURLService{
+		urlRepository:  repository,
+		shortURLDomain: domain,
+		shortURLLength: urlLength,
+		shortCodeProvider: codeProvider,
+	}
 }
 
 func (s *ShortenURLService) GetShortURL(originalURL string) (string, error) {
@@ -48,7 +58,7 @@ func (s *ShortenURLService) GetOriginalURL(shortCode string) (string, error) {
 }
 
 func (s *ShortenURLService) getURLItem(originalURL string) (*model.URLItem, error) {
-	shortCode := GenerateShortCode(s.shortURLLength)
+	shortCode := s.shortCodeProvider.Get(s.shortURLLength)
 	urlItem := model.NewURLItem(originalURL, shortCode)
 	err := s.urlRepository.CreateURL(*urlItem)
 	if err != nil {
@@ -58,7 +68,7 @@ func (s *ShortenURLService) getURLItem(originalURL string) (*model.URLItem, erro
 }
 
 func (s *ShortenURLService) tryGetURLItem(originalURL string) (*model.URLItem, error) {
-	var err error
+	var err error = repository.ErrRepoAlreadyExists
 	for range maxCollisionAttempts {
 		urlItem, err := s.getURLItem(originalURL)
 		if err == nil {
