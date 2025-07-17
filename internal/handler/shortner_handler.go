@@ -42,11 +42,6 @@ func (app *ShortnerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if contentType := r.Header.Get("Content-type"); contentType != "text/plain" {
-	// 	http.Error(w, "wrong content type", http.StatusBadRequest)
-	// 	return
-	// }
-
 	body, err := io.ReadAll(r.Body)
 	url := string(body)
 
