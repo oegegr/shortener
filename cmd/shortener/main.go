@@ -25,8 +25,8 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
+	router.Post("/*", ShortenerHandler.ShortenURL)
 	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
-	router.Post("/", ShortenerHandler.ShortenURL)
 
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
