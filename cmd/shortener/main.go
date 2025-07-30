@@ -18,7 +18,7 @@ func main() {
 	urlRepository := repository.NewInMemoryURLRepository()
 	urlService := service.NewShortenerService(
 		urlRepository,
-		c.ShortURLDomain,
+		c.BaseURL,
 		c.ShortURLLength,
 		&service.RandomShortCodeProvider{})
 	ShortenerHandler := handler.NewShortenerHandler(urlService)
@@ -34,7 +34,7 @@ func main() {
 	go func() {
 		fmt.Println("Server starting")
 
-		if err := http.ListenAndServe(c.RunAddr, router); err != nil && err != http.ErrServerClosed {
+		if err := http.ListenAndServe(c.ServerAddress, router); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Server stopped: %v\n", err)
 			stop()
 		}
