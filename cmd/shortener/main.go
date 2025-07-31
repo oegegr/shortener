@@ -6,15 +6,25 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/oegegr/shortener/internal/config"
 	"github.com/oegegr/shortener/internal/handler"
+	"github.com/oegegr/shortener/internal/middleware"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
+	"go.uber.org/zap"
 )
 
 func main() {
 	c := config.NewConfig()
+
+	var sugar zap.SugaredLogger
+    logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+    defer logger.Sync()	
+	sugar = *logger.Sugar()
+
 	urlRepository := repository.NewInMemoryURLRepository()
 	urlService := service.NewShortenerService(
 		urlRepository,
@@ -24,7 +34,7 @@ func main() {
 	ShortenerHandler := handler.NewShortenerHandler(urlService)
 
 	router := chi.NewRouter()
-	router.Use(middleware.Logger)
+	router.Use(middleware.ZapLogger(sugar))
 	router.Post("/*", ShortenerHandler.ShortenURL)
 	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
 

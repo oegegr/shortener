@@ -1,5 +1,10 @@
 package config 
 
+import (
+	"flag"
+	"os"
+)
+
 type Config struct {
 	ServerAddress  string
 	BaseURL        string
@@ -10,23 +15,19 @@ type Config struct {
 
 func NewConfig() *Config {
 	cfg := &Config{}
-	envConfig := NewEnvConfig()
-	flagConfig := NewFlagConfig()
 
+	flag.StringVar(&cfg.ServerAddress, "a", "127.0.0.1:8080", "address to startup server")
+	flag.StringVar(&cfg.BaseURL, "b", "http://127.0.0.1:8080", "domain to use for shrten urls")
+	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
+	flag.Parse()
 
-	if envConfig.ServerAddress == "" {
-		cfg.ServerAddress = flagConfig.ServerAddress
-	} else {
-		cfg.ServerAddress = envConfig.ServerAddress
-	}
-	if envConfig.BaseURL == "" {
-		cfg.BaseURL = flagConfig.BaseURL
-	
-	} else {
-		cfg.BaseURL = flagConfig.BaseURL
+	if envServerAddress := os.Getenv("SERVER_ADDRESS"); envServerAddress != "" {
+		cfg.ServerAddress = envServerAddress
 	}
 
-	cfg.ShortURLLength = flagConfig.ShortURLLength
+	if envBaseURL := os.Getenv("BASE_URL"); envBaseURL != "" {
+		cfg.BaseURL = envBaseURL
+	}
 
 	return cfg
 }
