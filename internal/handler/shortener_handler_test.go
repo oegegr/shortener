@@ -145,14 +145,14 @@ func TestApiShortenUrl(t *testing.T) {
 	app := handler.NewShortenerHandler(service)
 
 	t.Run("Valid Shortening", func(t *testing.T) {
-		reqBody := map[string]string {"url": "https://google.com"}
+		reqBody := map[string]string{"url": "https://google.com"}
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
 		service.On("GetShortURL", "https://google.com").Return("abc123", nil).Once()
-		app.ApiShortenURL(w, req)
+		app.APIShortenURL(w, req)
 
 		res := w.Result()
 		bodyBytes, _ := io.ReadAll(res.Body)
@@ -166,7 +166,7 @@ func TestApiShortenUrl(t *testing.T) {
 	t.Run("Invalid Method", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/shorten", nil)
 		w := httptest.NewRecorder()
-		app.ApiShortenURL(w, req)
+		app.APIShortenURL(w, req)
 
 		res := w.Result()
 		defer res.Body.Close()
@@ -178,7 +178,7 @@ func TestApiShortenUrl(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/shorten", nil)
 		req.Header.Set("Content-type", "text/plain")
 		w := httptest.NewRecorder()
-		app.ApiShortenURL(w, req)
+		app.APIShortenURL(w, req)
 
 		res := w.Result()
 		defer res.Body.Close()
@@ -192,7 +192,7 @@ func TestApiShortenUrl(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		service.On("GetShortURL", "https://google.com").Return("", errors.New("error")).Once()
-		app.ApiShortenURL(w, req)
+		app.APIShortenURL(w, req)
 
 		res := w.Result()
 		defer res.Body.Close()
@@ -203,7 +203,7 @@ func TestApiShortenUrl(t *testing.T) {
 	t.Run("Read Body Error", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/shorten", errReader(0))
 		w := httptest.NewRecorder()
-		app.ApiShortenURL(w, req)
+		app.APIShortenURL(w, req)
 
 		res := w.Result()
 		defer res.Body.Close()

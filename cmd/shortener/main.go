@@ -36,7 +36,7 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(sugar))
 	router.Post("/", ShortenerHandler.ShortenURL)
-	router.Post("/api/shorten", ShortenerHandler.ApiShortenURL)
+	router.Post("/api/shorten", ShortenerHandler.APIShortenURL)
 	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
 
 	ctx, stop := context.WithCancel(context.Background())

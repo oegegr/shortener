@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"io"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -60,7 +60,7 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 	w.Write([]byte(shortURL))
 }
 
-func (app *ShortenerHandler) ApiShortenURL(w http.ResponseWriter, r *http.Request) {
+func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Request) {
 	var req model.ShortenRequest
 
 	var err error
