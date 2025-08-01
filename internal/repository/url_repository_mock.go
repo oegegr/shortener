@@ -1,8 +1,8 @@
 package repository
 
-import(
-	"github.com/stretchr/testify/mock"
+import (
 	"github.com/oegegr/shortener/internal/model"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockURLRepository struct {
@@ -21,5 +21,5 @@ func (m *MockURLRepository) FindURLByID(id string) (*model.URLItem, error) {
 
 func (m *MockURLRepository) Exists(id string) bool {
 	args := m.Called(id)
-	return args.Bool(0) 
+	return args.Bool(0)
 }

@@ -1,7 +1,9 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -72,9 +74,10 @@ func TestShortenUrl(t *testing.T) {
 	app := handler.NewShortenerHandler(service)
 
 	t.Run("Valid Shortening", func(t *testing.T) {
-		body := strings.NewReader("https://google.com")
-		req := httptest.NewRequest(http.MethodPost, "/", body)
-		req.Header.Set("Content-Type", "text/plain")
+		reqBody := map[string]string {"url": "https://google.com"}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
 		service.On("GetShortURL", "https://google.com").Return("abc123", nil).Once()
@@ -85,8 +88,8 @@ func TestShortenUrl(t *testing.T) {
 		defer res.Body.Close()
 
 		assert.Equal(t, http.StatusCreated, res.StatusCode)
-		assert.Equal(t, "text/plain", res.Header.Get("Content-Type"))
-		assert.Equal(t, "abc123", string(bodyBytes))
+		assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+		assert.JSONEq(t, `{"result": "abc123"}`, string(bodyBytes))
 	})
 
 	t.Run("Invalid Method", func(t *testing.T) {
@@ -102,7 +105,7 @@ func TestShortenUrl(t *testing.T) {
 
 	t.Run("Invalid Content-type", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		req.Header.Set("Content-type", "application/json")
+		req.Header.Set("Content-type", "text/plain")
 		w := httptest.NewRecorder()
 		app.ShortenURL(w, req)
 

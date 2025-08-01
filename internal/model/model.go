@@ -9,6 +9,18 @@ var (
 	ErrEmptyCode  = errors.New("short code cannot be empty")
 )
 
+type ShortenRequest struct {
+	URL string `json:"url"`
+}
+
+type ShortenResponse struct {
+	Result string `json:"result"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 type URLItem struct {
 	ID  string
 	URL string
