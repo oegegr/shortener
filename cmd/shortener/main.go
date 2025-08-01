@@ -18,11 +18,11 @@ func main() {
 	c := config.NewConfig()
 
 	var sugar zap.SugaredLogger
-    logger, err := zap.NewDevelopment()
+	logger, err := zap.NewDevelopment()
 	if err != nil {
 		panic(err)
 	}
-    defer logger.Sync()	
+	defer logger.Sync()
 	sugar = *logger.Sugar()
 
 	urlRepository := repository.NewInMemoryURLRepository()
@@ -35,7 +35,8 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(sugar))
-	router.Post("/*", ShortenerHandler.ShortenURL)
+	router.Post("/", ShortenerHandler.ShortenURL)
+	router.Post("/api/shorten", ShortenerHandler.ApiShortenURL)
 	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
 
 	ctx, stop := context.WithCancel(context.Background())

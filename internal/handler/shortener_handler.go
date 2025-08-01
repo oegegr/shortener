@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"io"
+	"encoding/json"
 	"net/http"
 	"net/url"
-	"encoding/json"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oegegr/shortener/internal/model"
@@ -34,6 +35,32 @@ func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *htt
 }
 
 func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	url := string(body)
+
+	if err != nil {
+		http.Error(w, "missing post body", http.StatusBadRequest)
+		return
+	}
+
+	err = validateURL(url)
+	if err != nil {
+		http.Error(w, "invalid url", http.StatusBadRequest)
+		return
+	}
+
+	shortURL, err := app.URLService.GetShortURL(url)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(shortURL))
+}
+
+func (app *ShortenerHandler) ApiShortenURL(w http.ResponseWriter, r *http.Request) {
 	var req model.ShortenRequest
 
 	var err error
@@ -44,11 +71,6 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "failed to deserialize body", http.StatusBadRequest)
-		return
-	}
-
-	if err != nil {
-		http.Error(w, "missing post body", http.StatusBadRequest)
 		return
 	}
 
