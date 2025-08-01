@@ -35,6 +35,7 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(sugar))
+	router.Use(middleware.GzipMiddleware([]string{"application/json", "text/html"}))
 	router.Post("/", ShortenerHandler.ShortenURL)
 	router.Post("/api/shorten", ShortenerHandler.APIShortenURL)
 	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
