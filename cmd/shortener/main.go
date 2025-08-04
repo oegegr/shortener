@@ -35,9 +35,10 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(sugar))
-	router.Use(middleware.GzipMiddleware([]string{"application/json", "text/html"}))
-	router.Post("/", ShortenerHandler.ShortenURL)
+	typesToGzip := []string{"application/json", "text/html"}
+	router.Use(middleware.GzipMiddleware(typesToGzip))
 	router.Post("/api/shorten", ShortenerHandler.APIShortenURL)
+	router.Post("/*", ShortenerHandler.ShortenURL)
 	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
 
 	ctx, stop := context.WithCancel(context.Background())
@@ -45,7 +46,6 @@ func main() {
 
 	go func() {
 		fmt.Println("Server starting")
-
 		if err := http.ListenAndServe(c.ServerAddress, router); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Server stopped: %v\n", err)
 			stop()
