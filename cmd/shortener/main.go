@@ -12,20 +12,38 @@ import (
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
+
+func createLogger(c config.Config) zap.SugaredLogger {
+	var sugar zap.SugaredLogger
+	level, err := zapcore.ParseLevel(c.LogLevel)
+
+	if err != nil {
+		panic(err)
+	}
+
+	logCfg := zap.NewDevelopmentConfig()
+	logCfg.Level = zap.NewAtomicLevelAt(level)
+	logger, err := logCfg.Build()
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer logger.Sync()
+
+	sugar = *logger.Sugar()
+
+	return sugar
+}
 
 func main() {
 	c := config.NewConfig()
 
-	var sugar zap.SugaredLogger
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	defer logger.Sync()
-	sugar = *logger.Sugar()
+	logger := createLogger(*c)
 
-	urlRepository := repository.NewInMemoryURLRepository()
+	urlRepository := repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
 	urlService := service.NewShortenerService(
 		urlRepository,
 		c.BaseURL,
@@ -34,7 +52,7 @@ func main() {
 	ShortenerHandler := handler.NewShortenerHandler(urlService)
 
 	router := chi.NewRouter()
-	router.Use(middleware.ZapLogger(sugar))
+	router.Use(middleware.ZapLogger(logger))
 	typesToGzip := []string{"application/json", "text/html"}
 	router.Use(middleware.GzipMiddleware(typesToGzip))
 	router.Post("/api/shorten", ShortenerHandler.APIShortenURL)
