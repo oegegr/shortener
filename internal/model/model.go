@@ -22,8 +22,8 @@ type ErrorResponse struct {
 }
 
 type URLItem struct {
-	ID  string `json: "short_id"`
-	URL string `json: "origina_url"`
+	ID  string `json:"short_id"`
+	URL string `json:"original_url"`
 }
 
 func NewURLItem(url string, id string) *URLItem {
