@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -28,7 +27,7 @@ func createLogger(c config.Config) zap.SugaredLogger {
 	logger, err := logCfg.Build()
 
 	if err != nil {
-		panic(err)
+		panic("Failed to create logger: " + err.Error())
 	}
 
 	defer logger.Sync()
@@ -41,6 +40,9 @@ func createLogger(c config.Config) zap.SugaredLogger {
 func main() {
 	c := config.NewConfig()
 
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+
 	logger := createLogger(*c)
 
 	urlRepository := repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
@@ -48,7 +50,10 @@ func main() {
 		urlRepository,
 		c.BaseURL,
 		c.ShortURLLength,
-		&service.RandomShortCodeProvider{})
+		&service.RandomShortCodeProvider{},
+	    ctx,
+		logger,
+	)
 	ShortenerHandler := handler.NewShortenerHandler(urlService)
 
 	router := chi.NewRouter()
@@ -59,13 +64,10 @@ func main() {
 	router.Post("/*", ShortenerHandler.ShortenURL)
 	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
 
-	ctx, stop := context.WithCancel(context.Background())
-	defer stop()
-
 	go func() {
-		fmt.Println("Server starting")
+		logger.Infoln("Server starting")
 		if err := http.ListenAndServe(c.ServerAddress, router); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Server stopped: %v\n", err)
+			logger.Infoln("Server stopped: %v\n", err)
 			stop()
 		}
 	}()

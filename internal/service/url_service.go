@@ -1,12 +1,16 @@
 package service
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
+	app_error "github.com/oegegr/shortener/internal/error"
+
+	"github.com/avast/retry-go"
+	"go.uber.org/zap"
 )
 
 const (
@@ -14,9 +18,6 @@ const (
 	retryCollisionTimeout = 100 * time.Millisecond
 )
 
-var (
-	ErrServiceFailedToGetShortURL = errors.New("failed to get short url")
-)
 
 type URLShortener interface {
 	GetShortURL(originalURL string) (string, error)
@@ -28,18 +29,24 @@ type ShortenURLService struct {
 	shortURLDomain    string
 	shortURLLength    int
 	shortCodeProvider ShortCodeProvider
+	ctx               context.Context
+	logger            zap.SugaredLogger
 }
 
 func NewShortenerService(
 	repository repository.URLRepository,
 	domain string,
 	urlLength int,
-	codeProvider ShortCodeProvider) *ShortenURLService {
+	codeProvider ShortCodeProvider,
+	ctx context.Context,
+	logger zap.SugaredLogger) *ShortenURLService {
 	return &ShortenURLService{
 		urlRepository:     repository,
 		shortURLDomain:    domain,
 		shortURLLength:    urlLength,
 		shortCodeProvider: codeProvider,
+		ctx: ctx,
+		logger: logger,
 	}
 }
 
@@ -71,16 +78,21 @@ func (s *ShortenURLService) getURLItem(originalURL string) (*model.URLItem, erro
 }
 
 func (s *ShortenURLService) tryGetURLItem(originalURL string) (*model.URLItem, error) {
-	var err = repository.ErrRepoAlreadyExists
-	for range maxCollisionAttempts {
-		urlItem, err := s.getURLItem(originalURL)
-		if err == nil {
-			return urlItem, nil
-		}
-		if !errors.Is(err, repository.ErrRepoAlreadyExists) {
-			return nil, err
-		}
-		time.Sleep(retryCollisionTimeout)
+	var urlItem *model.URLItem
+	err := retry.Do(
+		func() (error) {
+			var err error
+			urlItem, err = s.getURLItem(originalURL)
+			return err
+		},
+		retry.Attempts(maxCollisionAttempts),
+		retry.MaxDelay(retryCollisionTimeout),
+		retry.Context(s.ctx),
+		retry.OnRetry(func(n uint, err error) {s.logger.Debugln("Retry error: ", err.Error())}),
+	)
+
+	if err != nil {
+		return nil, app_error.ErrServiceFailedToGetShortURL 
 	}
-	return nil, err
+	return urlItem, nil 
 }
