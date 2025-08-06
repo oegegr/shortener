@@ -51,7 +51,7 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 
 	shortURL, err := app.URLService.GetShortURL(url)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

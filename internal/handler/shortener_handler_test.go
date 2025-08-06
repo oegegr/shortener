@@ -125,7 +125,7 @@ func TestShortenUrl(t *testing.T) {
 		res := w.Result()
 		defer res.Body.Close()
 
-		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+		assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 	})
 
 	t.Run("Read Body Error", func(t *testing.T) {
