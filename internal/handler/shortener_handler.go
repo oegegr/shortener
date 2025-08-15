@@ -92,12 +92,6 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 
 }
 
-// func responseWithJSONError(w http.ResponseWriter, message string, statusCode int) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(statusCode)
-// 	json.NewEncoder(w).Encode(model.ErrorResponse{Error: message})
-// }
-
 func validateURL(originalURL string) error {
 	if _, err := url.ParseRequestURI(originalURL); err != nil {
 		return err

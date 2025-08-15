@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"database/sql"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oegegr/shortener/internal/config"
@@ -12,6 +13,7 @@ import (
 	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+    _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func createLogger(c config.Config) zap.SugaredLogger {
@@ -27,15 +29,24 @@ func createLogger(c config.Config) zap.SugaredLogger {
 	logger, err := logCfg.Build()
 
 	if err != nil {
-		panic("Failed to create logger: " + err.Error())
+		panic("failed to create logger: " + err.Error())
 	}
 
-	defer logger.Sync()
 
 	sugar = *logger.Sugar()
 
 	return sugar
 }
+
+func createDb(c config.Config) *sql.DB {
+	db, err := sql.Open("pgx", c.DbConnectionString)
+
+    if err != nil {
+        panic("failed to create db connection: " + err.Error())
+    }
+
+	return db
+} 
 
 func main() {
 	c := config.NewConfig()
@@ -43,7 +54,12 @@ func main() {
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
 
-	logger := createLogger(*c)
+	db := createDb(c)
+	defer db.Close()
+
+
+	logger := createLogger(c)
+	defer logger.Sync()
 
 	urlRepository := repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
 	urlService := service.NewShortenerService(
@@ -54,15 +70,17 @@ func main() {
 	    ctx,
 		logger,
 	)
-	ShortenerHandler := handler.NewShortenerHandler(urlService)
+	shortenerHandler := handler.NewShortenerHandler(urlService)
+	pingHandler := handler.NewPingHandler(db)
 
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(logger))
 	typesToGzip := []string{"application/json", "text/html"}
 	router.Use(middleware.GzipMiddleware(typesToGzip))
-	router.Post("/api/shorten", ShortenerHandler.APIShortenURL)
-	router.Post("/*", ShortenerHandler.ShortenURL)
-	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
+	router.Get("/ping", pingHandler.Ping)
+	router.Post("/api/shorten", shortenerHandler.APIShortenURL)
+	router.Post("/*", shortenerHandler.ShortenURL)
+	router.Get("/{short_url}", shortenerHandler.RedirectToOriginalURL)
 
 	go func() {
 		logger.Infoln("Server starting")
