@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"net/http"
 	"database/sql"
+	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/oegegr/shortener/internal/config"
 	"github.com/oegegr/shortener/internal/handler"
 	"github.com/oegegr/shortener/internal/middleware"
@@ -13,7 +14,6 @@ import (
 	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-    _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func createLogger(c config.Config) zap.SugaredLogger {
@@ -32,21 +32,20 @@ func createLogger(c config.Config) zap.SugaredLogger {
 		panic("failed to create logger: " + err.Error())
 	}
 
-
 	sugar = *logger.Sugar()
 
 	return sugar
 }
 
 func createDb(c config.Config) *sql.DB {
-	db, err := sql.Open("pgx", c.DbConnectionString)
+	db, err := sql.Open("pgx", c.DBConnectionString)
 
-    if err != nil {
-        panic("failed to create db connection: " + err.Error())
-    }
+	if err != nil {
+		panic("failed to create db connection: " + err.Error())
+	}
 
 	return db
-} 
+}
 
 func main() {
 	c := config.NewConfig()
@@ -57,7 +56,6 @@ func main() {
 	db := createDb(c)
 	defer db.Close()
 
-
 	logger := createLogger(c)
 	defer logger.Sync()
 
@@ -67,7 +65,7 @@ func main() {
 		c.BaseURL,
 		c.ShortURLLength,
 		&service.RandomShortCodeProvider{},
-	    ctx,
+		ctx,
 		logger,
 	)
 	shortenerHandler := handler.NewShortenerHandler(urlService)
