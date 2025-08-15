@@ -37,7 +37,7 @@ func createLogger(c config.Config) zap.SugaredLogger {
 	return sugar
 }
 
-func createDb(c config.Config) *sql.DB {
+func createDB(c config.Config) *sql.DB {
 	db, err := sql.Open("pgx", c.DBConnectionString)
 
 	if err != nil {
@@ -53,7 +53,7 @@ func main() {
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
 
-	db := createDb(c)
+	db := createDB(c)
 	defer db.Close()
 
 	logger := createLogger(c)
