@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"errors"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -14,6 +15,9 @@ import (
 	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func createLogger(c config.Config) zap.SugaredLogger {
@@ -46,6 +50,16 @@ func createDB(c config.Config) *sql.DB {
 	if err != nil {
 		panic("failed to create db connection: " + err.Error())
 	}
+
+	m, err := migrate.New("file://migrations", c.DBConnectionString)
+	if err != nil {
+		panic("failed to configure db migrations: " + err.Error())
+	}
+
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		panic("failed to apply db migrations: " + err.Error())
+	}
+
 
 	return db
 }

@@ -19,7 +19,7 @@ build-shortener:
 run-with-db: build-shortener run-postgresql  
 	        BASE_URL=http://127.0.0.1:8080 \
 		SERVER_ADDRESS=127.0.0.1:8080 \
-		DATABASE_DSN=postgres://admin:admin@172.28.1.1:5432/url \
+		DATABASE_DSN=postgres://admin:admin@172.28.1.1:5432/url?sslmode=disable \
 		bin/shortener
 
 .PHONY: run-with-dbfile 
@@ -42,6 +42,4 @@ run-postgresql:
 	  -p 172.28.1.1:5432:5432 \
 	  -v postgres-data:/var/lib/postgresql/data \
 	  postgres:latest 
-	sleep 5
-	migrate -database "postgres://admin:admin@172.28.1.1:5432/url?sslmode=disable" -path ./migrations up 
 
