@@ -9,38 +9,43 @@ import (
 )
 
 type DBURLRepository struct {
-	ctx context.Context
 	db *sql.DB
 	logger zap.SugaredLogger
 }
 
-func NewDBURLRepository(ctx context.Context, db *sql.DB, logger zap.SugaredLogger) *DBURLRepository {
+func NewDBURLRepository(db *sql.DB, logger zap.SugaredLogger) *DBURLRepository {
 	return &DBURLRepository{
-		ctx: ctx, 
 		db: db,
 		logger: logger,
 	}
 }
 
-func (r *DBURLRepository) CreateURL(urlItem model.URLItem) error {
-	stmt, err := r.db.Prepare("INSERT INTO url (url, short_id) VALUES ($1, $2)")
+func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err 
+	}
+	stmt, err := tx.Prepare("INSERT INTO url (url, short_id) VALUES ($1, $2)")
 	if err != nil {
 		r.logger.Errorf("sql request validation error: %v", err)
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(urlItem.URL, urlItem.ShortID)
-	if err != nil {
-		r.logger.Errorf("sql request execution error: %v", err)
-		return err
+	for _, item := range urlItem {
+		_, err = stmt.Exec(item.URL, item.ShortID)
+		if err != nil {
+			r.logger.Errorf("sql request execution error: %v", err)
+			tx.Rollback()
+			return err
+		}
 	}
 
-	return nil
+	return tx.Commit()
  
 }
 
-func (r *DBURLRepository) FindURLByID(id string) (*model.URLItem, error) {
+func (r *DBURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
 	stmt, err := r.db.Prepare("SELECT url, short_id FROM url WHERE short_id = $1")
 	if err != nil {
 		r.logger.Errorf("sql validation error: %v", err)
@@ -62,7 +67,7 @@ func (r *DBURLRepository) FindURLByID(id string) (*model.URLItem, error) {
 	return &urlItem, nil
 }
 
-func (r *DBURLRepository) Exists(id string) bool {
+func (r *DBURLRepository) Exists(ctx context.Context, id string) bool {
 	stmt, err := r.db.Prepare("SELECT 1 FROM url WHERE id = $1")
 	if err != nil {
 		r.logger.Errorf("sql validation error: %v", err)

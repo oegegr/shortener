@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"sync"
+	"context"
 
 	"github.com/oegegr/shortener/internal/model"
 	"go.uber.org/zap"
@@ -29,15 +30,20 @@ func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) 
 	return storage
 }
 
-func (repo *InMemoryURLRepository) CreateURL(urlItem model.URLItem) error {
+func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.URLItem) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
-	_, ok := repo.data[urlItem.ShortID]
-	if ok {
-		return ErrRepoAlreadyExists
+
+	for _, item := range items {
+		_, ok := repo.data[item.ShortID]
+		if ok {
+			return ErrRepoAlreadyExists
+		}
 	}
 
-	repo.data[urlItem.ShortID] = urlItem.URL
+	for _, item := range items {
+		repo.data[item.ShortID] = item.URL
+	}
 
 	err := repo.saveData()
 
@@ -48,7 +54,7 @@ func (repo *InMemoryURLRepository) CreateURL(urlItem model.URLItem) error {
 	return nil
 }
 
-func (repo *InMemoryURLRepository) FindURLByID(id string) (*model.URLItem, error) {
+func (repo *InMemoryURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	url, ok := repo.data[id]
@@ -58,7 +64,7 @@ func (repo *InMemoryURLRepository) FindURLByID(id string) (*model.URLItem, error
 	return model.NewURLItem(url, id), nil
 }
 
-func (repo *InMemoryURLRepository) Exists(id string) bool {
+func (repo *InMemoryURLRepository) Exists(ctx context.Context, id string) bool {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	_, ok := repo.data[id]

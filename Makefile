@@ -42,4 +42,5 @@ run-postgresql:
 	  -p 172.28.1.1:5432:5432 \
 	  -v postgres-data:/var/lib/postgresql/data \
 	  postgres:latest 
+	sleep 5
 

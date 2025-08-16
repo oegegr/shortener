@@ -17,6 +17,20 @@ type ShortenResponse struct {
 	Result string `json:"result"`
 }
 
+type ShortenBatchRequest []BatchRequest
+
+type BatchRequest struct {
+	URL string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"`
+}
+
+type ShortenBatchResponse []BatchResponse
+
+type BatchResponse struct {
+	Result string `json:"short_url"`
+	CorrelationID string `json:"correlation_id"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

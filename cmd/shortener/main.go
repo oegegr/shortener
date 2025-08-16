@@ -66,20 +66,18 @@ func createDB(c config.Config) *sql.DB {
 
 func createURLRepository(
 	c config.Config, 
-	ctx context.Context, 
 	logger zap.SugaredLogger,
 	db *sql.DB,
 	) repository.URLRepository {
 
 	if c.DBConnectionString != "" {
-		return repository.NewDBURLRepository(ctx, db, logger)
+		return repository.NewDBURLRepository(db, logger)
 	} 
 
 	return repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
 }
 
 func createShortnerService(
-	ctx context.Context, 
 	c config.Config,
 	logger zap.SugaredLogger, 
 	repo repository.URLRepository,
@@ -89,7 +87,6 @@ func createShortnerService(
 		c.BaseURL,
 		c.ShortURLLength,
 		&service.RandomShortCodeProvider{},
-		ctx,
 		logger,
 	)
 }
@@ -106,8 +103,8 @@ func main() {
 	logger := createLogger(c)
 	defer logger.Sync()
 
-	repo := createURLRepository(c, ctx, logger, db)
-	service := createShortnerService(ctx, c, logger, repo)
+	repo := createURLRepository(c, logger, db)
+	service := createShortnerService(c, logger, repo)
 
 	shortenerHandler := handler.NewShortenerHandler(service)
 	pingHandler := handler.NewPingHandler(db)
@@ -117,6 +114,7 @@ func main() {
 	typesToGzip := []string{"application/json", "text/html"}
 	router.Use(middleware.GzipMiddleware(typesToGzip))
 	router.Get("/ping", pingHandler.Ping)
+	router.Post("/api/shorten/batch", shortenerHandler.APIShortenBatchURL)
 	router.Post("/api/shorten", shortenerHandler.APIShortenURL)
 	router.Post("/*", shortenerHandler.ShortenURL)
 	router.Get("/{short_url}", shortenerHandler.RedirectToOriginalURL)
