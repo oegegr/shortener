@@ -1,13 +1,13 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
-	"context"
 
+	app_error "github.com/oegegr/shortener/internal/error"
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
-	app_error "github.com/oegegr/shortener/internal/error"
 	"github.com/oegegr/shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -114,7 +114,7 @@ func TestShortenURLService_GetOriginalURL_Success(t *testing.T) {
 
 	shortCode := "abc123"
 	expectedURL := "https://original.com/long/url"
-	urlItem := &model.URLItem{ID: shortCode, URL: expectedURL}
+	urlItem := &model.URLItem{ShortID: shortCode, URL: expectedURL}
 
 	repoMock.On("FindURLByID", shortCode).Return(urlItem, nil).Once()
 

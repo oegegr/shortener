@@ -15,16 +15,18 @@ build-shortener:
 		chmod +x -R bin
 		go build -o bin ./...
 
-.PHONY: run-with-env 
-run-with-env: build-shortener run-postgresql  
-	        BASE_URL=http://127.0.0.1:38511 \
-		SERVER_ADDRESS=127.0.0.1:38511 \
-		DATABASE_DSN=postgres://admin:admin@172.28.1.1:5432/shortener \
+.PHONY: run-with-db
+run-with-db: build-shortener run-postgresql  
+	        BASE_URL=http://127.0.0.1:8080 \
+		SERVER_ADDRESS=127.0.0.1:8080 \
+		DATABASE_DSN=postgres://admin:admin@172.28.1.1:5432/url \
 		bin/shortener
 
-.PHONY: run-with-flags 
-run-with-flags: build-shortener 
-		bin/shortener -a 127.0.0.1:8080 -b http://127.0.0.1
+.PHONY: run-with-dbfile 
+run-with-dbfile: build-shortener 
+	        BASE_URL=http://127.0.0.1:8080 \
+		SERVER_ADDRESS=127.0.0.1:8080 \
+		bin/shortener
 
 .PHONY: test-integration
 test-integration: build-shortener 
@@ -32,6 +34,14 @@ test-integration: build-shortener
 
 .PHONY: run-postgresql
 run-postgresql: 
-	docker rm -f $$(docker ps -q  -f=name=postgres)
-	docker run -d --name postgres   -e POSTGRES_USER=admin   -e POSTGRES_PASSWORD=admin   -e POSTGRES_DB=shortener   -p 172.28.1.1:5432:5432   postgres:latest
+	docker rm -f $$(docker ps -q  -f=name=postgres) || true
+	docker run -d --name postgres \
+	  -e POSTGRES_USER=admin \
+	  -e POSTGRES_PASSWORD=admin \
+	  -e POSTGRES_DB=url \
+	  -p 172.28.1.1:5432:5432 \
+	  -v postgres-data:/var/lib/postgresql/data \
+	  postgres:latest 
 	sleep 5
+	migrate -database "postgres://admin:admin@172.28.1.1:5432/url?sslmode=disable" -path ./migrations up 
+

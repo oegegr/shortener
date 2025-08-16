@@ -38,6 +38,9 @@ func createLogger(c config.Config) zap.SugaredLogger {
 }
 
 func createDB(c config.Config) *sql.DB {
+	if c.DBConnectionString == "" {
+		return nil
+	}
 	db, err := sql.Open("pgx", c.DBConnectionString)
 
 	if err != nil {
@@ -45,6 +48,36 @@ func createDB(c config.Config) *sql.DB {
 	}
 
 	return db
+}
+
+func createURLRepository(
+	c config.Config, 
+	ctx context.Context, 
+	logger zap.SugaredLogger,
+	db *sql.DB,
+	) repository.URLRepository {
+
+	if c.DBConnectionString != "" {
+		return repository.NewDBURLRepository(ctx, db, logger)
+	} 
+
+	return repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
+}
+
+func createShortnerService(
+	ctx context.Context, 
+	c config.Config,
+	logger zap.SugaredLogger, 
+	repo repository.URLRepository,
+	) service.URLShortener {
+	return service.NewShortenerService(
+		repo,
+		c.BaseURL,
+		c.ShortURLLength,
+		&service.RandomShortCodeProvider{},
+		ctx,
+		logger,
+	)
 }
 
 func main() {
@@ -59,16 +92,10 @@ func main() {
 	logger := createLogger(c)
 	defer logger.Sync()
 
-	urlRepository := repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
-	urlService := service.NewShortenerService(
-		urlRepository,
-		c.BaseURL,
-		c.ShortURLLength,
-		&service.RandomShortCodeProvider{},
-		ctx,
-		logger,
-	)
-	shortenerHandler := handler.NewShortenerHandler(urlService)
+	repo := createURLRepository(c, ctx, logger, db)
+	service := createShortnerService(ctx, c, logger, repo)
+
+	shortenerHandler := handler.NewShortenerHandler(service)
 	pingHandler := handler.NewPingHandler(db)
 
 	router := chi.NewRouter()

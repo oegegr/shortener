@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	app_error "github.com/oegegr/shortener/internal/error"
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
-	app_error "github.com/oegegr/shortener/internal/error"
 
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
@@ -45,8 +45,8 @@ func NewShortenerService(
 		shortURLDomain:    domain,
 		shortURLLength:    urlLength,
 		shortCodeProvider: codeProvider,
-		ctx: ctx,
-		logger: logger,
+		ctx:               ctx,
+		logger:            logger,
 	}
 }
 
@@ -55,7 +55,7 @@ func (s *ShortenURLService) GetShortURL(originalURL string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/%s", s.shortURLDomain, urlItem.ID), nil
+	return fmt.Sprintf("%s/%s", s.shortURLDomain, urlItem.ShortID), nil
 }
 
 func (s *ShortenURLService) GetOriginalURL(shortCode string) (string, error) {
@@ -80,7 +80,7 @@ func (s *ShortenURLService) getURLItem(originalURL string) (*model.URLItem, erro
 func (s *ShortenURLService) tryGetURLItem(originalURL string) (*model.URLItem, error) {
 	var urlItem *model.URLItem
 	err := retry.Do(
-		func() (error) {
+		func() error {
 			var err error
 			urlItem, err = s.getURLItem(originalURL)
 			return err
@@ -88,11 +88,11 @@ func (s *ShortenURLService) tryGetURLItem(originalURL string) (*model.URLItem, e
 		retry.Attempts(maxCollisionAttempts),
 		retry.MaxDelay(retryCollisionTimeout),
 		retry.Context(s.ctx),
-		retry.OnRetry(func(n uint, err error) {s.logger.Debugln("Retry error: ", err.Error())}),
+		retry.OnRetry(func(n uint, err error) { s.logger.Debugln("Retry error: ", err.Error()) }),
 	)
 
 	if err != nil {
-		return nil, app_error.ErrServiceFailedToGetShortURL 
+		return nil, app_error.ErrServiceFailedToGetShortURL
 	}
-	return urlItem, nil 
+	return urlItem, nil
 }
