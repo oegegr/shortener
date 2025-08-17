@@ -13,6 +13,10 @@ import (
 	"github.com/oegegr/shortener/internal/service"
 )
 
+const (
+	shortenFailure = "failed to get short url"
+)
+
 type ShortenerHandler struct {
 	URLService service.URLShortener
 }
@@ -57,14 +61,13 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 
 		if errors.Is(err, repository.ErrRepoURLAlreadyExists) {
-			// http.Error(w, shortURL, http.StatusConflict)
 			w.WriteHeader(http.StatusConflict)
 			w.Header().Set("Content-Type", "text/plain")
 			w.Write([]byte(shortURL))
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, shortenFailure, http.StatusInternalServerError)
 		return
 	}
 
@@ -147,7 +150,7 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, shortenFailure, http.StatusBadRequest)
 		return
 	}
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	app_error "github.com/oegegr/shortener/internal/error"
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
@@ -79,7 +78,7 @@ func TestShortenURLService_GetShortURL_MaxCollisions(t *testing.T) {
 	shortURL, err := svc.GetShortURL(ctx, originalURL)
 
 	assert.Error(t, err)
-	assert.Equal(t, app_error.ErrServiceFailedToGetShortURL, err)
+	assert.Equal(t, repository.ErrRepoShortIDAlreadyExists, err)
 	assert.Empty(t, shortURL)
 	repoMock.AssertExpectations(t)
 }
@@ -100,7 +99,7 @@ func TestShortenURLService_GetShortURL_RepositoryError(t *testing.T) {
 	shortURL, err := svc.GetShortURL(ctx, originalURL)
 
 	assert.Error(t, err)
-	assert.Equal(t, app_error.ErrServiceFailedToGetShortURL, err)
+	assert.Equal(t, testError, err)
 	assert.Empty(t, shortURL)
 	repoMock.AssertExpectations(t)
 }
