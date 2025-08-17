@@ -12,7 +12,7 @@ import (
 
 type InMemoryURLRepository struct {
 	mu              sync.RWMutex
-	shortIdMap      map[string]string
+	shortIDMap      map[string]string
 	urlMap          map[string]string
 	fileStoragePath string
 	logger          zap.SugaredLogger
@@ -36,7 +36,7 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 	defer repo.mu.Unlock()
 
 	for _, item := range items {
-		_, ok := repo.shortIdMap[item.ShortID]
+		_, ok := repo.shortIDMap[item.ShortID]
 		if ok {
 			return ErrRepoShortIDAlreadyExists
 		}
@@ -49,7 +49,7 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 
 
 	for _, item := range items {
-		repo.shortIdMap[item.ShortID] = item.URL
+		repo.shortIDMap[item.ShortID] = item.URL
 		repo.urlMap[item.URL] = item.ShortID
 	}
 
@@ -65,7 +65,7 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 func (repo *InMemoryURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
-	url, ok := repo.shortIdMap[id]
+	url, ok := repo.shortIDMap[id]
 	if !ok {
 		return nil, ErrRepoNotFound
 	}
@@ -85,7 +85,7 @@ func (repo *InMemoryURLRepository) FindURLByURL(ctx context.Context, url string)
 func (repo *InMemoryURLRepository) Exists(ctx context.Context, id string) bool {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
-	_, ok := repo.shortIdMap[id]
+	_, ok := repo.shortIDMap[id]
 	return ok
 }
 
@@ -109,7 +109,7 @@ func (repo *InMemoryURLRepository) loadData() error {
 		shortIDs[item.ShortID] = item.URL
 		urls[item.URL] = item.ShortID
 	}
-	repo.shortIdMap = shortIDs
+	repo.shortIDMap = shortIDs
 	repo.urlMap = urls
 
 	return nil
@@ -124,7 +124,7 @@ func (repo *InMemoryURLRepository) saveData() error {
 	defer file.Close()
 
 	var items []model.URLItem
-	for id, url := range repo.shortIdMap {
+	for id, url := range repo.shortIDMap {
 		repo.logger.Debugln("Create UrlItem", id, url)
 		items = append(items, *model.NewURLItem(url, id))
 	}
