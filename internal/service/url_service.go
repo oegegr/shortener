@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	app_error "github.com/oegegr/shortener/internal/error"
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
 
@@ -50,10 +50,23 @@ func NewShortenerService(
 
 func (s *ShortenURLService) GetShortURL(ctx context.Context, url string) (string, error) {
 	items, err := s.tryGetURLItem(ctx, []string{url})
+
+	if err != nil {
+	    if errors.Is(err, repository.ErrRepoURLAlreadyExists) {
+			return s.resolveURLConflict(ctx, url, err)
+		}
+		return "", err 
+	}
+
+	return s.buildShortURL(items[0]), nil
+}
+
+func (s *ShortenURLService) resolveURLConflict(ctx context.Context, url string, urlConflict error) (string, error) {
+	item, err := s.urlRepository.FindURLByURL(ctx, url)
 	if err != nil {
 		return "", err
 	}
-	return s.buildShortURL(items[0]), nil
+	return s.buildShortURL(*item), urlConflict 
 }
 
 func (s *ShortenURLService) GetShortURLBatch(ctx context.Context, urls []string) ([]string, error) {
@@ -99,6 +112,12 @@ func (s *ShortenURLService) tryGetURLItem(ctx context.Context, originalURL []str
 			items, err = s.getURLItem(ctx, originalURL)
 			return err
 		},
+		retry.RetryIf(
+			func(err error) bool {
+				return errors.Is(err, repository.ErrRepoShortIDAlreadyExists)
+			},
+		),
+		retry.LastErrorOnly(true),
 		retry.Attempts(maxCollisionAttempts),
 		retry.MaxDelay(retryCollisionTimeout),
 		retry.Context(ctx),
@@ -106,7 +125,7 @@ func (s *ShortenURLService) tryGetURLItem(ctx context.Context, originalURL []str
 	)
 
 	if err != nil {
-		return nil, app_error.ErrServiceFailedToGetShortURL
+		return nil, err
 	}
 	return items, nil
 }

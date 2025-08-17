@@ -12,7 +12,8 @@ import (
 
 type InMemoryURLRepository struct {
 	mu              sync.RWMutex
-	data            map[string]string
+	shortIdMap      map[string]string
+	urlMap          map[string]string
 	fileStoragePath string
 	logger          zap.SugaredLogger
 }
@@ -35,14 +36,21 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 	defer repo.mu.Unlock()
 
 	for _, item := range items {
-		_, ok := repo.data[item.ShortID]
+		_, ok := repo.shortIdMap[item.ShortID]
 		if ok {
-			return ErrRepoAlreadyExists
+			return ErrRepoShortIDAlreadyExists
+		}
+
+		_, ok = repo.urlMap[item.URL]
+		if ok {
+			return ErrRepoURLAlreadyExists
 		}
 	}
 
+
 	for _, item := range items {
-		repo.data[item.ShortID] = item.URL
+		repo.shortIdMap[item.ShortID] = item.URL
+		repo.urlMap[item.URL] = item.ShortID
 	}
 
 	err := repo.saveData()
@@ -57,7 +65,17 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 func (repo *InMemoryURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
-	url, ok := repo.data[id]
+	url, ok := repo.shortIdMap[id]
+	if !ok {
+		return nil, ErrRepoNotFound
+	}
+	return model.NewURLItem(url, id), nil
+}
+
+func (repo *InMemoryURLRepository) FindURLByURL(ctx context.Context, url string) (*model.URLItem, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
+	id, ok := repo.urlMap[url]
 	if !ok {
 		return nil, ErrRepoNotFound
 	}
@@ -67,7 +85,7 @@ func (repo *InMemoryURLRepository) FindURLByID(ctx context.Context, id string) (
 func (repo *InMemoryURLRepository) Exists(ctx context.Context, id string) bool {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
-	_, ok := repo.data[id]
+	_, ok := repo.shortIdMap[id]
 	return ok
 }
 
@@ -85,11 +103,14 @@ func (repo *InMemoryURLRepository) loadData() error {
 	json.NewDecoder(file).Decode(&items)
 
 	repo.logger.Debugln("Load UrlItems", items)
-	data := make(map[string]string, len(items))
+	shortIDs := make(map[string]string, len(items))
+	urls := make(map[string]string, len(items))
 	for _, item := range items {
-		data[item.ShortID] = item.URL
+		shortIDs[item.ShortID] = item.URL
+		urls[item.URL] = item.ShortID
 	}
-	repo.data = data
+	repo.shortIdMap = shortIDs
+	repo.urlMap = urls
 
 	return nil
 
@@ -103,7 +124,7 @@ func (repo *InMemoryURLRepository) saveData() error {
 	defer file.Close()
 
 	var items []model.URLItem
-	for id, url := range repo.data {
+	for id, url := range repo.shortIdMap {
 		repo.logger.Debugln("Create UrlItem", id, url)
 		items = append(items, *model.NewURLItem(url, id))
 	}

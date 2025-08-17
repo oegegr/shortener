@@ -5,9 +5,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"errors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oegegr/shortener/internal/model"
+	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
 )
 
@@ -53,6 +55,15 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 
 	shortURL, err := app.URLService.GetShortURL(ctx, url)
 	if err != nil {
+
+		if errors.Is(err, repository.ErrRepoURLAlreadyExists) {
+			// http.Error(w, shortURL, http.StatusConflict)
+			w.WriteHeader(http.StatusConflict)
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(shortURL))
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -128,6 +139,14 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 
 	shortURL, err := app.URLService.GetShortURL(ctx, req.URL)
 	if err != nil {
+
+		if errors.Is(err, repository.ErrRepoURLAlreadyExists) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(model.ShortenResponse{Result: shortURL})
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

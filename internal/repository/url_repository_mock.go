@@ -21,6 +21,11 @@ func (m *MockURLRepository) FindURLByID(ctx context.Context, id string) (*model.
 	return args.Get(0).(*model.URLItem), args.Error(1)
 }
 
+func (m *MockURLRepository) FindURLByURL(ctx context.Context, url string) (*model.URLItem, error) {
+	args := m.Called(url)
+	return args.Get(0).(*model.URLItem), args.Error(1)
+}
+
 func (m *MockURLRepository) Exists(ctx context.Context, id string) bool {
 	args := m.Called(id)
 	return args.Bool(0)

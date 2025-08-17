@@ -52,7 +52,7 @@ func TestShortenURLService_GetShortURL_CollisionRecovery(t *testing.T) {
 
 	originalURL := "https://original.com/long/url"
 
-	repoMock.On("CreateURL", mock.Anything).Return(repository.ErrRepoAlreadyExists).Twice()
+	repoMock.On("CreateURL", mock.Anything).Return(repository.ErrRepoShortIDAlreadyExists).Twice()
 	repoMock.On("CreateURL", mock.Anything).Return(nil).Once()
 	provider.On("Get", 6).Return("any")
 
@@ -73,7 +73,7 @@ func TestShortenURLService_GetShortURL_MaxCollisions(t *testing.T) {
 
 	originalURL := "https://original.com/long/url"
 
-	repoMock.On("CreateURL", mock.Anything).Return(repository.ErrRepoAlreadyExists).Times(10)
+	repoMock.On("CreateURL", mock.Anything).Return(repository.ErrRepoShortIDAlreadyExists).Times(10)
 	provider.On("Get", 6).Return("any")
 
 	shortURL, err := svc.GetShortURL(ctx, originalURL)
