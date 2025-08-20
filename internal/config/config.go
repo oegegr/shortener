@@ -19,29 +19,29 @@ func NewConfig() Config {
 
 	flag.StringVar(&cfg.ServerAddress, "a", "127.0.0.1:8080", "address to startup server")
 	flag.StringVar(&cfg.BaseURL, "b", "http://127.0.0.1:8080", "domain to use for shrten urls")
-	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/foo", "file path to save storage")
+	flag.StringVar(&cfg.FileStoragePath, "f", "", "file path to save storage")
 	flag.StringVar(&cfg.DBConnectionString, "d", "", "database connection string")
 	flag.StringVar(&cfg.LogLevel, "l", "DEBUG", "log level")
 	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
 	flag.Parse()
 
-	if envServerAddress, ok := os.LookupEnv("SERVER_ADDRESS"); !ok {
+	if envServerAddress, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
 		cfg.ServerAddress = envServerAddress
 	}
 
-	if envBaseURL, ok := os.LookupEnv("BASE_URL"); !ok {
+	if envBaseURL, ok := os.LookupEnv("BASE_URL"); ok {
 		cfg.BaseURL = envBaseURL
 	}
 
-	if fileStoragePath, ok := os.LookupEnv("FILE_STORAGE_PATH"); !ok {
+	if fileStoragePath, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
 		cfg.FileStoragePath = fileStoragePath
 	}
 
-	if LogLevel, ok := os.LookupEnv("LOG_LEVEL"); !ok {
+	if LogLevel, ok := os.LookupEnv("LOG_LEVEL"); ok {
 		cfg.LogLevel = LogLevel
 	}
 
-	if dbConnectionString, ok := os.LookupEnv("DATABASE_DSN"); !ok {
+	if dbConnectionString, ok := os.LookupEnv("DATABASE_DSN"); ok {
 		cfg.DBConnectionString = dbConnectionString
 	}
 

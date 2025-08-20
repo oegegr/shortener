@@ -14,9 +14,6 @@ import (
 )
 
 func NewDB(c config.Config, logger *zap.SugaredLogger) (*sql.DB, error){
-	if c.DBConnectionString == "" {
-		return nil, nil
-	}
 	db, err := sql.Open("pgx", c.DBConnectionString)
 
 	if err != nil {

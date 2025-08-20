@@ -14,11 +14,11 @@ type DBURLRepository struct {
 	logger zap.SugaredLogger
 }
 
-func NewDBURLRepository(db *sql.DB, logger zap.SugaredLogger) *DBURLRepository {
+func NewDBURLRepository(db *sql.DB, logger zap.SugaredLogger) (*DBURLRepository, error) {
 	return &DBURLRepository{
 		db: db,
 		logger: logger,
-	}
+	}, nil
 }
 
 func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem) error {

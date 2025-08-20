@@ -26,6 +26,17 @@ run-with-db: build-shortener run-postgresql
 run-with-dbfile: build-shortener 
 	        BASE_URL=http://127.0.0.1:8080 \
 		SERVER_ADDRESS=127.0.0.1:8080 \
+		FILE_STORAGE_PATH=/tmp/foo \
+		bin/shortener
+
+.PHONY: run-with-mem
+run-with-mem: build-shortener 
+	        BASE_URL=http://127.0.0.1:8080 \
+		SERVER_ADDRESS=127.0.0.1:8080 \
+		bin/shortener
+
+.PHONY: run-default
+run-default: build-shortener 
 		bin/shortener
 
 .PHONY: test-integration

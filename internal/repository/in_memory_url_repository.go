@@ -16,19 +16,32 @@ type InMemoryURLRepository struct {
 	urlMap          map[string]string
 	fileStoragePath string
 	logger          zap.SugaredLogger
+	persistent      bool
 }
 
-func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) *InMemoryURLRepository {
+func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) (*InMemoryURLRepository, error) {
+	items, err := loadData(fileStoragePath, logger) 
+	if err != nil {
+		logger.Fatal("Failed to create InMemory repository with error: %w", err.Error())
+		return nil, err
+	}
+
+	shortIDs := make(map[string]string, len(items))
+	urls := make(map[string]string, len(items))
+	for _, item := range items {
+		shortIDs[item.ShortID] = item.URL
+		urls[item.URL] = item.ShortID
+	}
+
 	storage := &InMemoryURLRepository{
 		fileStoragePath: fileStoragePath,
 		logger:          logger,
+		persistent: fileStoragePath != "",
+		urlMap: urls,
+		shortIDMap: shortIDs,
 	}
-	err := storage.loadData()
-	if err != nil {
-		panic("Failed to create InMemory repository with error: " + err.Error())
 
-	}
-	return storage
+	return storage, nil
 }
 
 func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.URLItem) error {
@@ -53,11 +66,13 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 		repo.urlMap[item.URL] = item.ShortID
 	}
 
-	err := repo.saveData()
-
-	if err != nil {
-		return err
+	if repo.persistent {
+		err := repo.saveData()
+		if err != nil {
+			return err
+		}
 	}
+
 
 	return nil
 }
@@ -89,33 +104,6 @@ func (repo *InMemoryURLRepository) Exists(ctx context.Context, id string) bool {
 	return ok
 }
 
-func (repo *InMemoryURLRepository) loadData() error {
-	repo.mu.RLock()
-	defer repo.mu.RUnlock()
-
-	file, err := os.OpenFile(repo.fileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	var items []model.URLItem
-	json.NewDecoder(file).Decode(&items)
-
-	repo.logger.Debugln("Load UrlItems", items)
-	shortIDs := make(map[string]string, len(items))
-	urls := make(map[string]string, len(items))
-	for _, item := range items {
-		shortIDs[item.ShortID] = item.URL
-		urls[item.URL] = item.ShortID
-	}
-	repo.shortIDMap = shortIDs
-	repo.urlMap = urls
-
-	return nil
-
-}
-
 func (repo *InMemoryURLRepository) saveData() error {
 	file, err := os.OpenFile(repo.fileStoragePath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -130,4 +118,20 @@ func (repo *InMemoryURLRepository) saveData() error {
 	}
 
 	return json.NewEncoder(file).Encode(items)
+}
+
+func loadData(fileStoragePath string, logger zap.SugaredLogger) ([]model.URLItem, error) {
+	var items []model.URLItem
+	if fileStoragePath != "" {
+		file, err := os.OpenFile(fileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+
+		json.NewDecoder(file).Decode(&items)
+		logger.Debugln("Load UrlItems", items)
+		return items, nil
+	}
+	return []model.URLItem{}, nil 
 }

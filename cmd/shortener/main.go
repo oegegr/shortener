@@ -21,14 +21,14 @@ func createURLRepository(
 	c config.Config, 
 	logger zap.SugaredLogger,
 	db *sql.DB,
-	) repository.URLRepository {
+	) (repository.URLRepository, error) {
 
 	if c.DBConnectionString != "" {
 		return repository.NewDBURLRepository(db, logger)
 	} 
 
 	return repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
-}
+	}
 
 func createShortnerService(
 	c config.Config,
@@ -57,17 +57,24 @@ func main() {
 		panic("failed to create logger: " + err.Error())
 	}
 
-	db, err := db.NewDB(c, logger)
+	var dbConn  *sql.DB
+	if c.DBConnectionString != "" {
+		dbConn, err = db.NewDB(c, logger)
+		if err != nil {
+			panic("failed to create db connection: " + err.Error())
+		}
+		
+		defer dbConn.Close()
+	}
+
+	repo, err := createURLRepository(c, *logger, dbConn)
 	if err != nil {
 		panic("failed to create db connection: " + err.Error())
 	}
 
-	defer db.Close()
-
-	repo := createURLRepository(c, *logger, db)
 	service := createShortnerService(c, *logger, repo)
 
-	router := internal.NewShortenerRouter(*logger, service, db)
+	router := internal.NewShortenerRouter(*logger, service, dbConn)
 
 	go func() {
 		logger.Infoln("Server starting")
