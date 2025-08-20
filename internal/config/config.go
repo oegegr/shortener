@@ -25,23 +25,23 @@ func NewConfig() Config {
 	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
 	flag.Parse()
 
-	if envServerAddress := os.Getenv("SERVER_ADDRESS"); envServerAddress != "" {
+	if envServerAddress, ok := os.LookupEnv("SERVER_ADDRESS"); !ok {
 		cfg.ServerAddress = envServerAddress
 	}
 
-	if envBaseURL := os.Getenv("BASE_URL"); envBaseURL != "" {
+	if envBaseURL, ok := os.LookupEnv("BASE_URL"); !ok {
 		cfg.BaseURL = envBaseURL
 	}
 
-	if fileStoragePath := os.Getenv("FILE_STORAGE_PATH"); fileStoragePath != "" {
+	if fileStoragePath, ok := os.LookupEnv("FILE_STORAGE_PATH"); !ok {
 		cfg.FileStoragePath = fileStoragePath
 	}
 
-	if LogLevel := os.Getenv("LOG_LEVEL"); LogLevel != "" {
+	if LogLevel, ok := os.LookupEnv("LOG_LEVEL"); !ok {
 		cfg.LogLevel = LogLevel
 	}
 
-	if dbConnectionString := os.Getenv("DATABASE_DSN"); dbConnectionString != "" {
+	if dbConnectionString, ok := os.LookupEnv("DATABASE_DSN"); !ok {
 		cfg.DBConnectionString = dbConnectionString
 	}
 

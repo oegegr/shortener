@@ -67,7 +67,7 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		http.Error(w, shortenFailure, http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 

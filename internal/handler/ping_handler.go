@@ -23,7 +23,7 @@ func (p *PingHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := p.db.PingContext(ctx); err != nil {
-		http.Error(w, "failed to connect to database", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return 
     }
 
