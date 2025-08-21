@@ -2,39 +2,46 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/oegegr/shortener/internal"
 	"github.com/oegegr/shortener/internal/config"
-	"github.com/oegegr/shortener/internal/handler"
-	"github.com/oegegr/shortener/internal/middleware"
+	"github.com/oegegr/shortener/internal/config/db"
+	"github.com/oegegr/shortener/internal/config/logger"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-func createLogger(c config.Config) zap.SugaredLogger {
-	var sugar zap.SugaredLogger
-	level, err := zapcore.ParseLevel(c.LogLevel)
 
-	if err != nil {
-		panic(err)
+
+func createURLRepository(
+	c config.Config, 
+	logger zap.SugaredLogger,
+	db *sql.DB,
+	) (repository.URLRepository, error) {
+
+	if c.DBConnectionString != "" {
+		return repository.NewDBURLRepository(db, logger)
+	} 
+
+	return repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
 	}
 
-	logCfg := zap.NewDevelopmentConfig()
-	logCfg.Level = zap.NewAtomicLevelAt(level)
-	logger, err := logCfg.Build()
-
-	if err != nil {
-		panic("Failed to create logger: " + err.Error())
-	}
-
-	defer logger.Sync()
-
-	sugar = *logger.Sugar()
-
-	return sugar
+func createShortnerService(
+	c config.Config,
+	logger zap.SugaredLogger, 
+	repo repository.URLRepository,
+	) service.URLShortener {
+	return service.NewShortenerService(
+		repo,
+		c.BaseURL,
+		c.ShortURLLength,
+		&service.RandomShortCodeProvider{},
+		logger,
+	)
 }
 
 func main() {
@@ -43,26 +50,31 @@ func main() {
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
 
-	logger := createLogger(*c)
+	logger, err := sugar.NewLogger(c)
+	defer logger.Sync()
+		
+	if err != nil {
+		panic("failed to create logger: " + err.Error())
+	}
 
-	urlRepository := repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
-	urlService := service.NewShortenerService(
-		urlRepository,
-		c.BaseURL,
-		c.ShortURLLength,
-		&service.RandomShortCodeProvider{},
-	    ctx,
-		logger,
-	)
-	ShortenerHandler := handler.NewShortenerHandler(urlService)
+	var dbConn  *sql.DB
+	if c.DBConnectionString != "" {
+		dbConn, err = db.NewDB(c, logger)
+		if err != nil {
+			panic("failed to create db connection: " + err.Error())
+		}
+		
+		defer dbConn.Close()
+	}
 
-	router := chi.NewRouter()
-	router.Use(middleware.ZapLogger(logger))
-	typesToGzip := []string{"application/json", "text/html"}
-	router.Use(middleware.GzipMiddleware(typesToGzip))
-	router.Post("/api/shorten", ShortenerHandler.APIShortenURL)
-	router.Post("/*", ShortenerHandler.ShortenURL)
-	router.Get("/{short_url}", ShortenerHandler.RedirectToOriginalURL)
+	repo, err := createURLRepository(c, *logger, dbConn)
+	if err != nil {
+		panic("failed to create db connection: " + err.Error())
+	}
+
+	service := createShortnerService(c, *logger, repo)
+
+	router := internal.NewShortenerRouter(*logger, service, repo)
 
 	go func() {
 		logger.Infoln("Server starting")
