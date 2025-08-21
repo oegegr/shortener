@@ -1,13 +1,12 @@
 package internal
 
 import (
-	"database/sql"
-
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/oegegr/shortener/internal/handler"
 	"github.com/oegegr/shortener/internal/middleware"
 	"github.com/oegegr/shortener/internal/service"
+	"github.com/oegegr/shortener/internal/repository"
 	"go.uber.org/zap"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -16,11 +15,11 @@ import (
 func NewShortenerRouter(
 	logger zap.SugaredLogger,
 	service service.URLShortener,
-	db *sql.DB,
+	repo repository.URLRepository, 
 ) *chi.Mux {
 
 	shortenerHandler := handler.NewShortenerHandler(service)
-	pingHandler := handler.NewPingHandler(db)
+	pingHandler := handler.NewPingHandler(repo)
 
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(logger))

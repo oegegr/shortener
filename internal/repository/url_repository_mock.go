@@ -11,6 +11,11 @@ type MockURLRepository struct {
 	mock.Mock
 }
 
+func (m *MockURLRepository) Ping(ctx context.Context) error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 func (m *MockURLRepository) CreateURL(ctx context.Context, urls []model.URLItem) error {
 	args := m.Called(urls)
 	return args.Error(0)

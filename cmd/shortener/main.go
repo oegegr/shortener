@@ -74,7 +74,7 @@ func main() {
 
 	service := createShortnerService(c, *logger, repo)
 
-	router := internal.NewShortenerRouter(*logger, service, dbConn)
+	router := internal.NewShortenerRouter(*logger, service, repo)
 
 	go func() {
 		logger.Infoln("Server starting")

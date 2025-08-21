@@ -44,6 +44,10 @@ func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) 
 	return storage, nil
 }
 
+func (repo *InMemoryURLRepository) Ping(ctx context.Context) error {
+	return nil
+}
+
 func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.URLItem) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()

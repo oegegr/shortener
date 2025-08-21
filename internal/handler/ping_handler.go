@@ -3,29 +3,23 @@ package handler
 import (
 	"net/http"
 
-	"database/sql"
+	"github.com/oegegr/shortener/internal/repository"
 )
 
 type PingHandler struct {
-	db *sql.DB
+	repo repository.URLRepository
 }
 
-func NewPingHandler(db *sql.DB) PingHandler {
-	return PingHandler{db: db}
+func NewPingHandler(repo repository.URLRepository) PingHandler {
+	return PingHandler{repo: repo}
 }
 
 func (p *PingHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
-	if p.db == nil {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if err := p.db.PingContext(ctx); err != nil {
+	err := p.repo.Ping(ctx)
+	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return 
     }
-
 	w.WriteHeader(http.StatusOK)
 }

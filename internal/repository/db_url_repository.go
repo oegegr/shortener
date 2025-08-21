@@ -21,6 +21,10 @@ func NewDBURLRepository(db *sql.DB, logger zap.SugaredLogger) (*DBURLRepository,
 	}, nil
 }
 
+func (r *DBURLRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}
+
 func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem) error {
 	tx, err := r.db.Begin()
 	if err != nil {

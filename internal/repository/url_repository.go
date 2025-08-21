@@ -14,6 +14,7 @@ var (
 )
 
 type URLRepository interface {
+	Ping(ctx context.Context) error
 	CreateURL(ctx context.Context, urlItem []model.URLItem) error
 	FindURLByID(ctx context.Context, id string) (*model.URLItem, error)
 	FindURLByURL(ctx context.Context, id string) (*model.URLItem, error)
