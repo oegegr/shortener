@@ -18,5 +18,6 @@ type URLRepository interface {
 	CreateURL(ctx context.Context, urlItem []model.URLItem) error
 	FindURLByID(ctx context.Context, id string) (*model.URLItem, error)
 	FindURLByURL(ctx context.Context, id string) (*model.URLItem, error)
+	FindURLByUser(ctx context.Context, userID string) ([]model.URLItem, error)
 	Exists(ctx context.Context, id string) bool
 }

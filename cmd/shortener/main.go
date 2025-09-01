@@ -44,6 +44,13 @@ func createShortnerService(
 	)
 }
 
+func createJWTParser(
+	c config.Config,
+	logger zap.SugaredLogger,
+) service.JWTParser {
+	return service.NewJWTParser(c.JWTSecret, logger) 
+}
+
 func main() {
 	c := config.NewConfig()
 
@@ -74,7 +81,9 @@ func main() {
 
 	service := createShortnerService(c, *logger, repo)
 
-	router := internal.NewShortenerRouter(*logger, service, repo)
+	jwtParser := createJWTParser(c, *logger)
+
+	router := internal.NewShortenerRouter(*logger, service, jwtParser, repo)
 
 	go func() {
 		logger.Infoln("Server starting")

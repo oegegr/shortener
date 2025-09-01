@@ -1,11 +1,12 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
-	"errors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oegegr/shortener/internal/model"
@@ -17,12 +18,23 @@ const (
 	shortenFailure = "failed to get short url"
 )
 
-type ShortenerHandler struct {
-	URLService service.URLShortener
+type UserIDProvider interface {
+	Get(ctx context.Context) (string, error)
 }
 
-func NewShortenerHandler(service service.URLShortener) ShortenerHandler {
-	return ShortenerHandler{URLService: service}
+type ShortenerHandler struct {
+	URLService service.URLShortener
+	userIDProvider UserIDProvider
+}
+
+func NewShortenerHandler(
+	service service.URLShortener,
+	provider UserIDProvider,
+	) ShortenerHandler {
+	return ShortenerHandler{
+		URLService: service,
+		userIDProvider: provider,
+	}
 }
 
 func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +69,13 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	shortURL, err := app.URLService.GetShortURL(ctx, url)
+	userID, err := app.userIDProvider.Get(ctx) 
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	shortURL, err := app.URLService.GetShortURL(ctx, url, userID)
 	if err != nil {
 
 		if errors.Is(err, repository.ErrRepoURLAlreadyExists) {
@@ -75,6 +93,35 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
 }
+
+func (app *ShortenerHandler) APIUserURL(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, err := app.userIDProvider.Get(ctx) 
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	urlItems, err := app.URLService.GetUserURL(ctx, userID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if len(urlItems) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	resp := model.UserURLResponse(urlItems)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
 
 func (app *ShortenerHandler) APIShortenBatchURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -99,7 +146,13 @@ func (app *ShortenerHandler) APIShortenBatchURL(w http.ResponseWriter, r *http.R
 		urls = append(urls, item.URL)
 	}
 
-	shortURLs, err := app.URLService.GetShortURLBatch(ctx, urls)
+	userID, err := app.userIDProvider.Get(ctx) 
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	shortURLs, err := app.URLService.GetShortURLBatch(ctx, urls, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -140,7 +193,13 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	shortURL, err := app.URLService.GetShortURL(ctx, req.URL)
+	userID, err := app.userIDProvider.Get(ctx) 
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	shortURL, err := app.URLService.GetShortURL(ctx, req.URL, userID)
 	if err != nil {
 
 		if errors.Is(err, repository.ErrRepoURLAlreadyExists) {

@@ -17,6 +17,13 @@ type ShortenResponse struct {
 	Result string `json:"result"`
 }
 
+type UserURLResponse []UserURL
+
+type UserURL struct {
+	ShortURL string `json:"short_url"`
+	URL     string `json:"original_url"`
+}
+
 type ShortenBatchRequest []BatchRequest
 
 type BatchRequest struct {
@@ -38,11 +45,13 @@ type ErrorResponse struct {
 type URLItem struct {
 	ShortID string `json:"short_id"`
 	URL     string `json:"original_url"`
+	UserID  string `json:"user_id"`
 }
 
-func NewURLItem(url string, id string) *URLItem {
+func NewURLItem(url string, id string, userID string) *URLItem {
 	return &URLItem{
 		URL:     url,
 		ShortID: id,
+		UserID: userID,
 	}
 }

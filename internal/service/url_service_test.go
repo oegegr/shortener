@@ -22,6 +22,10 @@ func (m *MockShortCodeProvider) Get(length int) string {
 	return args.String(0)
 }
 
+const (
+	user string = "test"
+)
+
 func TestShortenURLService_GetShortURL_Success(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
@@ -35,7 +39,7 @@ func TestShortenURLService_GetShortURL_Success(t *testing.T) {
 	repoMock.On("CreateURL", mock.AnythingOfType("[]model.URLItem")).Return(nil).Once()
 	provider.On("Get", 6).Return(expectedShortCode)
 
-	shortURL, err := svc.GetShortURL(ctx, originalURL)
+	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "https://short.com/"+expectedShortCode, shortURL)
@@ -55,7 +59,7 @@ func TestShortenURLService_GetShortURL_CollisionRecovery(t *testing.T) {
 	repoMock.On("CreateURL", mock.Anything).Return(nil).Once()
 	provider.On("Get", 6).Return("any")
 
-	shortURL, err := svc.GetShortURL(ctx, originalURL)
+	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
 
 	assert.NoError(t, err)
 	assert.Contains(t, shortURL, "https://short.com/")
@@ -75,7 +79,7 @@ func TestShortenURLService_GetShortURL_MaxCollisions(t *testing.T) {
 	repoMock.On("CreateURL", mock.Anything).Return(repository.ErrRepoShortIDAlreadyExists).Times(10)
 	provider.On("Get", 6).Return("any")
 
-	shortURL, err := svc.GetShortURL(ctx, originalURL)
+	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
 
 	assert.Error(t, err)
 	assert.Equal(t, repository.ErrRepoShortIDAlreadyExists, err)
@@ -96,7 +100,7 @@ func TestShortenURLService_GetShortURL_RepositoryError(t *testing.T) {
 	repoMock.On("CreateURL", mock.Anything).Return(testError)
 	provider.On("Get", 6).Return("any")
 
-	shortURL, err := svc.GetShortURL(ctx, originalURL)
+	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
 
 	assert.Error(t, err)
 	assert.Equal(t, testError, err)

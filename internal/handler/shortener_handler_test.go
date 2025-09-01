@@ -15,11 +15,22 @@ import (
 	"github.com/oegegr/shortener/internal/handler"
 	"github.com/oegegr/shortener/internal/service"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+type MockUserIDProvider struct {
+	mock.Mock
+}
+
+func (m *MockUserIDProvider) Get(ctx context.Context) (string, error) {
+	args := m.Called(ctx)
+	return args.String(0), args.Error(1)
+}
 
 func TestRedirectToOriginalUrl(t *testing.T) {
 	service := new(service.MockURLService)
-	app := handler.NewShortenerHandler(service)
+	userIdProvider := new(handler.UserIDProvider)
+	app := handler.NewShortenerHandler(service, *userIdProvider)
 
 	t.Run("Invalid Method", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/test", nil)
@@ -52,9 +63,11 @@ func TestRedirectToOriginalUrl(t *testing.T) {
 	})
 
 	t.Run("Valid Redirect", func(t *testing.T) {
-		service.On("GetOriginalURL", "xyz").Return("https://google.com", nil)
+
+		service.On("GetOriginalURL", mock.Anything, "xyz").Return("https://google.com", nil)
 
 		req := httptest.NewRequest(http.MethodGet, "/xyz", nil)
+
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("short_url", "xyz")
 		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
@@ -71,7 +84,10 @@ func TestRedirectToOriginalUrl(t *testing.T) {
 
 func TestShortenUrl(t *testing.T) {
 	service := new(service.MockURLService)
-	app := handler.NewShortenerHandler(service)
+	userIdProvider := new(MockUserIDProvider)
+	app := handler.NewShortenerHandler(service, userIdProvider)
+	
+	userIdProvider.On("Get", mock.Anything).Return("user", nil)
 
 	t.Run("Valid Shortening", func(t *testing.T) {
 		body := strings.NewReader("https://google.com")
@@ -79,7 +95,7 @@ func TestShortenUrl(t *testing.T) {
 		req.Header.Set("Content-Type", "text/plain")
 		w := httptest.NewRecorder()
 
-		service.On("GetShortURL", "https://google.com").Return("abc123", nil).Once()
+		service.On("GetShortURL", mock.Anything, "https://google.com", "user").Return("abc123", nil).Once()
 		app.ShortenURL(w, req)
 
 		res := w.Result()
@@ -119,7 +135,7 @@ func TestShortenUrl(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/", body)
 		w := httptest.NewRecorder()
 
-		service.On("GetShortURL", "https://google.com").Return("", errors.New("error")).Once()
+		service.On("GetShortURL", mock.Anything, "https://google.com", "user").Return("", errors.New("error")).Once()
 		app.ShortenURL(w, req)
 
 		res := w.Result()
@@ -142,7 +158,10 @@ func TestShortenUrl(t *testing.T) {
 
 func TestApiShortenUrl(t *testing.T) {
 	service := new(service.MockURLService)
-	app := handler.NewShortenerHandler(service)
+	userIdProvider := new(MockUserIDProvider)
+	app := handler.NewShortenerHandler(service, userIdProvider)
+
+	userIdProvider.On("Get", mock.Anything).Return("user", nil)
 
 	t.Run("Valid Shortening", func(t *testing.T) {
 		reqBody := map[string]string{"url": "https://google.com"}
@@ -151,7 +170,7 @@ func TestApiShortenUrl(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
-		service.On("GetShortURL", "https://google.com").Return("abc123", nil).Once()
+		service.On("GetShortURL", mock.Anything, "https://google.com", "user").Return("abc123", nil).Once()
 		app.APIShortenURL(w, req)
 
 		res := w.Result()
