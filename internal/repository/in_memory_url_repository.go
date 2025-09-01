@@ -29,7 +29,7 @@ func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) 
 
 	shortIDs := make(map[string]model.URLItem, len(items))
 	urls := make(map[string]model.URLItem, len(items))
-	users := make(map[string][]model.URLItem)
+	users := make(map[string][]model.URLItem, len(items))
 
 	for _, item := range items {
 		shortIDs[item.ShortID] = item
@@ -50,6 +50,7 @@ func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) 
 		persistent: fileStoragePath != "",
 		urlMap: urls,
 		shortIDMap: shortIDs,
+		userMap: users,
 	}
 
 	return storage, nil
