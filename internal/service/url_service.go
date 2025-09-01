@@ -18,8 +18,6 @@ const (
 	retryCollisionTimeout = 100 * time.Millisecond
 )
 
-type UserIdProvider func(ctx context.Context) (string, error)
-
 type URLShortener interface {
 	GetShortURL(ctx context.Context, url string, userID string) (string, error)
 	GetShortURLBatch(ctx context.Context, urls []string, userID string) ([]string, error)

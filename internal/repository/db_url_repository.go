@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/oegegr/shortener/internal/model"
@@ -88,6 +89,7 @@ func (r *DBURLRepository) FindURLByUser(ctx context.Context, userID string) ([]m
 
 	var items []model.URLItem
 	rows, err := stmt.Query(userID)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			r.logger.Debugf("user not found %s", )
@@ -96,10 +98,15 @@ func (r *DBURLRepository) FindURLByUser(ctx context.Context, userID string) ([]m
 		r.logger.Errorf("sql execution error: %v", err)
 		return nil, err
 	}
+
 	for rows.Next() {
 		var item model.URLItem
 		rows.Scan(&item.URL, &item.ShortID, &item.UserID)
 		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row deserialization error %w", err)
 	}
 
 	return items, nil
