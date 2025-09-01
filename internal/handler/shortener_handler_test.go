@@ -29,8 +29,8 @@ func (m *MockUserIDProvider) Get(ctx context.Context) (string, error) {
 
 func TestRedirectToOriginalUrl(t *testing.T) {
 	service := new(service.MockURLService)
-	userIdProvider := new(handler.UserIDProvider)
-	app := handler.NewShortenerHandler(service, *userIdProvider)
+	userIDProvider := new(handler.UserIDProvider)
+	app := handler.NewShortenerHandler(service, *userIDProvider)
 
 	t.Run("Invalid Method", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/test", nil)
@@ -84,10 +84,10 @@ func TestRedirectToOriginalUrl(t *testing.T) {
 
 func TestShortenUrl(t *testing.T) {
 	service := new(service.MockURLService)
-	userIdProvider := new(MockUserIDProvider)
-	app := handler.NewShortenerHandler(service, userIdProvider)
+	userIDProvider := new(MockUserIDProvider)
+	app := handler.NewShortenerHandler(service, userIDProvider)
 	
-	userIdProvider.On("Get", mock.Anything).Return("user", nil)
+	userIDProvider.On("Get", mock.Anything).Return("user", nil)
 
 	t.Run("Valid Shortening", func(t *testing.T) {
 		body := strings.NewReader("https://google.com")
@@ -158,10 +158,10 @@ func TestShortenUrl(t *testing.T) {
 
 func TestApiShortenUrl(t *testing.T) {
 	service := new(service.MockURLService)
-	userIdProvider := new(MockUserIDProvider)
-	app := handler.NewShortenerHandler(service, userIdProvider)
+	userIDProvider := new(MockUserIDProvider)
+	app := handler.NewShortenerHandler(service, userIDProvider)
 
-	userIdProvider.On("Get", mock.Anything).Return("user", nil)
+	userIDProvider.On("Get", mock.Anything).Return("user", nil)
 
 	t.Run("Valid Shortening", func(t *testing.T) {
 		reqBody := map[string]string{"url": "https://google.com"}
