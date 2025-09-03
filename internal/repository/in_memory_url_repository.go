@@ -112,9 +112,9 @@ func (repo *InMemoryURLRepository) DeleteURL(ctx context.Context, ids []string) 
 		repo.urlMap[item.URL] = item
 		userItems := repo.userMap[item.UserID]
 
-		for _, userItem := range userItems {
+		for idx, userItem := range userItems {
 			if userItem.ShortID == id {
-				userItem.IsDeleted = true
+				userItems[idx].IsDeleted = true
 				break
 			}
 		} 

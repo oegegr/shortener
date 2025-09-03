@@ -28,7 +28,7 @@ func createURLRepository(
 
 	return repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
 }
-func createUrlDelStrategy(
+func createURLDeletionStrategy(
 	logger zap.SugaredLogger,
 	repo repository.URLRepository,
 ) *service.QueueDeletionStrategy {
@@ -91,7 +91,7 @@ func main() {
 	}
 
 
-	urlDelStrategy := createUrlDelStrategy(*logger, repo) 
+	urlDelStrategy := createURLDeletionStrategy(*logger, repo) 
 	defer urlDelStrategy.Stop()
 
 	service := createShortnerService(c, *logger, repo, urlDelStrategy)
