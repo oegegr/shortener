@@ -1,12 +1,14 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"sync"
-	"context"
 
 	"github.com/oegegr/shortener/internal/model"
+
+	"github.com/samber/lo/mutable"
 	"go.uber.org/zap"
 )
 
@@ -94,34 +96,76 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 	return nil
 }
 
+func (repo *InMemoryURLRepository) DeleteURL(ctx context.Context, ids []string) error {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	for _, id := range ids {
+		item, ok := repo.shortIDMap[id]
+
+		if !ok {
+			return ErrRepoNotFound
+		}
+
+		item.IsDeleted = true
+		repo.shortIDMap[item.ShortID] = item
+		repo.urlMap[item.URL] = item
+		userItems := repo.userMap[item.UserID]
+
+		for _, userItem := range userItems {
+			if userItem.ShortID == id {
+				userItem.IsDeleted = true
+				break
+			}
+		} 
+
+	}
+
+	if repo.persistent {
+		err := repo.saveData()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (repo *InMemoryURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	item, ok := repo.shortIDMap[id]
-	if !ok {
+	if !ok || item.IsDeleted {
 		return nil, ErrRepoNotFound
 	}
-	return model.NewURLItem(item.URL, id, item.UserID), nil
+	return model.NewURLItem(item.URL, id, item.UserID, item.IsDeleted), nil
 }
 
 func (repo *InMemoryURLRepository) FindURLByURL(ctx context.Context, url string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	item, ok := repo.urlMap[url]
-	if !ok {
+	if !ok || item.IsDeleted {
 		return nil, ErrRepoNotFound
 	}
-	return model.NewURLItem(url, item.ShortID, item.UserID), nil
+	return model.NewURLItem(url, item.ShortID, item.UserID, item.IsDeleted), nil
 }
 
 func (repo *InMemoryURLRepository) FindURLByUser(ctx context.Context, userID string) ([]model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 	items, ok := repo.userMap[userID]
+
 	if !ok {
 		return nil, ErrRepoNotFound
 	}
-	return items, nil
+
+	result := mutable.Filter(items, func(item model.URLItem) bool {return item.IsDeleted})
+
+	if len(result) == 0 {
+		return nil, ErrRepoNotFound
+	}
+	return result, nil
 }
 
 func (repo *InMemoryURLRepository) Exists(ctx context.Context, id string) bool {
@@ -141,7 +185,7 @@ func (repo *InMemoryURLRepository) saveData() error {
 	var items []model.URLItem
 	for id, item := range repo.shortIDMap {
 		repo.logger.Debugln("Create UrlItem", id, item.URL)
-		items = append(items, *model.NewURLItem(item.URL, id, item.UserID))
+		items = append(items, *model.NewURLItem(item.URL, id, item.UserID, item.IsDeleted))
 	}
 
 	return json.NewEncoder(file).Encode(items)

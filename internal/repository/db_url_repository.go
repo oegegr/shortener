@@ -31,7 +31,7 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 	if err != nil {
 		return err 
 	}
-	stmt, err := tx.Prepare("INSERT INTO url (url, short_id, user_id) VALUES ($1, $2, $3)")
+	stmt, err := tx.Prepare("INSERT INTO url (url, short_id, user_id, is_deleted) VALUES ($1, $2, $3, $4)")
 	if err != nil {
 		r.logger.Errorf("sql request validation error: %v", err)
 		return err
@@ -40,7 +40,7 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 
 	for _, item := range urlItem {
 
-		_, err = stmt.Exec(item.URL, item.ShortID, item.UserID)
+		_, err = stmt.Exec(item.URL, item.ShortID, item.UserID, item.IsDeleted)
 
 		if err != nil {
 			if strings.Contains(err.Error(), "23505") {
@@ -51,6 +51,29 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 			tx.Rollback()
 			return err
 		}
+	}
+	return tx.Commit()
+}
+
+func (r *DBURLRepository) DeleteURL(ctx context.Context, ids []string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err 
+	}
+	stmt, err := tx.Prepare("UPDATE url SET is_deleted = true WHERE short_id = ANY($1)")
+	if err != nil {
+		r.logger.Errorf("sql request validation error: %v", err)
+		return err
+	}
+	defer stmt.Close()
+
+
+	_, err = stmt.Exec(ids)
+
+	if err != nil {
+		r.logger.Errorf("sql request execution error: %v", err)
+		tx.Rollback()
+		return err
 	}
 	return tx.Commit()
 }
@@ -113,7 +136,7 @@ func (r *DBURLRepository) FindURLByUser(ctx context.Context, userID string) ([]m
 }
 
 func (r *DBURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
-	stmt, err := r.db.Prepare("SELECT url, short_id FROM url WHERE short_id = $1")
+	stmt, err := r.db.Prepare("SELECT url, short_id , is_deleted FROM url WHERE short_id = $1")
 	if err != nil {
 		r.logger.Errorf("sql validation error: %v", err)
 		return nil, err
@@ -121,7 +144,7 @@ func (r *DBURLRepository) FindURLByID(ctx context.Context, id string) (*model.UR
 	defer stmt.Close()
 
 	var urlItem model.URLItem
-	err = stmt.QueryRow(id).Scan(&urlItem.URL, &urlItem.ShortID)
+	err = stmt.QueryRow(id).Scan(&urlItem.URL, &urlItem.ShortID, &urlItem.IsDeleted)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			r.logger.Debugf("url not found %s", id)

@@ -17,7 +17,12 @@ func (m *MockURLRepository) Ping(ctx context.Context) error {
 }
 
 func (m *MockURLRepository) CreateURL(ctx context.Context, urls []model.URLItem) error {
-	args := m.Called(urls)
+	args := m.Called(ctx, urls)
+	return args.Error(0)
+}
+
+func (m *MockURLRepository) DeleteURL(ctx context.Context, ids []string) error {
+	args := m.Called(ctx, ids)
 	return args.Error(0)
 }
 

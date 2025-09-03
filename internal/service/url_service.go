@@ -8,6 +8,7 @@ import (
 
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
+	app_error "github.com/oegegr/shortener/internal/error"
 
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
@@ -23,6 +24,11 @@ type URLShortener interface {
 	GetShortURLBatch(ctx context.Context, urls []string, userID string) ([]string, error)
 	GetOriginalURL(ctx context.Context, shortURL string) (string, error)
 	GetUserURL(ctx context.Context, userID string) ([]model.UserURL, error)
+	DeleteUserURL(ctx context.Context, userID string, shortIDs []string) error
+}
+
+type URLDeletionStrategy interface {
+	DeleteURL(ctx context.Context, shortIDs []string) error
 }
 
 type ShortenURLService struct {
@@ -30,6 +36,7 @@ type ShortenURLService struct {
 	shortURLDomain    string
 	shortURLLength    int
 	shortCodeProvider ShortCodeProvider
+	urlDelStrategy    URLDeletionStrategy
 	logger            zap.SugaredLogger
 }
 
@@ -38,12 +45,14 @@ func NewShortenerService(
 	domain string,
 	urlLength int,
 	codeProvider ShortCodeProvider,
+	urlDelStrategy URLDeletionStrategy,
 	logger zap.SugaredLogger) *ShortenURLService {
 	return &ShortenURLService{
 		urlRepository:     repository,
 		shortURLDomain:    domain,
 		shortURLLength:    urlLength,
 		shortCodeProvider: codeProvider,
+	    urlDelStrategy:    urlDelStrategy,
 		logger:            logger,
 	}
 }
@@ -59,6 +68,14 @@ func (s *ShortenURLService) GetShortURL(ctx context.Context, url string, userID 
 	}
 
 	return s.buildShortURL(items[0]), nil
+}
+
+func (s *ShortenURLService) DeleteUserURL(ctx context.Context, userID string, shortIDs []string) error {
+	err := s.urlDelStrategy.DeleteURL(ctx, shortIDs)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *ShortenURLService) GetUserURL(ctx context.Context, userID string) ([]model.UserURL, error) {
@@ -99,8 +116,13 @@ func (s *ShortenURLService) GetShortURLBatch(ctx context.Context, urls []string,
 
 func (s *ShortenURLService) GetOriginalURL(ctx context.Context, shortCode string) (string, error) {
 	urlItem, err := s.urlRepository.FindURLByID(ctx, shortCode)
+
 	if err != nil {
 		return "", err
+	}
+
+	if urlItem.IsDeleted {
+		return "", app_error.ErrServiceURLGone 
 	}
 
 	return urlItem.URL, nil
@@ -110,7 +132,7 @@ func (s *ShortenURLService) getURLItem(ctx context.Context, originalURL []string
 	items := []model.URLItem{}
 	for _, url := range originalURL {
 		shortCode := s.shortCodeProvider.Get(s.shortURLLength)
-		item := model.NewURLItem(url, shortCode, userID)
+		item := model.NewURLItem(url, shortCode, userID, false)
 		items = append(items, *item)
 	}
 	err := s.urlRepository.CreateURL(ctx, items)

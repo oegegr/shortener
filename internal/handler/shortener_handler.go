@@ -12,6 +12,7 @@ import (
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
+	app_error "github.com/oegegr/shortener/internal/error"
 )
 
 const (
@@ -47,9 +48,16 @@ func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *htt
 
 	originalURL, err := app.URLService.GetOriginalURL(ctx, shortURL)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		if errors.Is(err, app_error.ErrServiceURLGone) {
+			http.Error(w, err.Error(), http.StatusGone)
+			return
+		}
+
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+
 	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
 }
 
@@ -120,6 +128,39 @@ func (app *ShortenerHandler) APIUserURL(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (app *ShortenerHandler) APIUserBatchDeleteURL(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req model.ShortenBatchDeleteRequest
+
+	if r.Header.Get("Content-type") != "application/json" {
+		http.Error(w, "wrong content-type", http.StatusBadRequest)
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "failed to deserialize body", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := app.userIDProvider.Get(ctx) 
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = app.URLService.DeleteUserURL(ctx, userID, req)
+	if err != nil {
+		if errors.Is(err, service.ErrDeleteQueueIsFull) {
+			http.Error(w, err.Error(), http.StatusTooManyRequests)
+			return
+		}
+
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 }
 
 

@@ -22,6 +22,15 @@ func (m *MockShortCodeProvider) Get(length int) string {
 	return args.String(0)
 }
 
+type MockURLDelStrategy struct {
+	mock.Mock
+}
+
+func (m *MockURLDelStrategy) DeleteURL(ctx context.Context, ids []string) error {
+	args := m.Called(ctx, ids)
+	return args.Error(0)
+}
+
 const (
 	user string = "test"
 )
@@ -29,14 +38,15 @@ const (
 func TestShortenURLService_GetShortURL_Success(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
+	delStrategy := new(MockURLDelStrategy)
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t).Sugar()
-	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, *logger)
+	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, delStrategy, *logger)
 
 	originalURL := "https://original.com/long/url"
 	expectedShortCode := "abc123"
 
-	repoMock.On("CreateURL", mock.AnythingOfType("[]model.URLItem")).Return(nil).Once()
+	repoMock.On("CreateURL", mock.Anything, mock.AnythingOfType("[]model.URLItem")).Return(nil).Once()
 	provider.On("Get", 6).Return(expectedShortCode)
 
 	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
@@ -49,14 +59,15 @@ func TestShortenURLService_GetShortURL_Success(t *testing.T) {
 func TestShortenURLService_GetShortURL_CollisionRecovery(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
+	delStrategy := new(MockURLDelStrategy)
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t).Sugar()
-	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, *logger)
+	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, delStrategy, *logger)
 
 	originalURL := "https://original.com/long/url"
 
-	repoMock.On("CreateURL", mock.Anything).Return(repository.ErrRepoShortIDAlreadyExists).Twice()
-	repoMock.On("CreateURL", mock.Anything).Return(nil).Once()
+	repoMock.On("CreateURL", mock.Anything, mock.Anything).Return(repository.ErrRepoShortIDAlreadyExists).Twice()
+	repoMock.On("CreateURL", mock.Anything, mock.Anything).Return(nil).Once()
 	provider.On("Get", 6).Return("any")
 
 	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
@@ -70,13 +81,14 @@ func TestShortenURLService_GetShortURL_CollisionRecovery(t *testing.T) {
 func TestShortenURLService_GetShortURL_MaxCollisions(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
+	delStrategy := new(MockURLDelStrategy)
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t).Sugar()
-	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, *logger)
+	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, delStrategy, *logger)
 
 	originalURL := "https://original.com/long/url"
 
-	repoMock.On("CreateURL", mock.Anything).Return(repository.ErrRepoShortIDAlreadyExists).Times(10)
+	repoMock.On("CreateURL", mock.Anything, mock.Anything).Return(repository.ErrRepoShortIDAlreadyExists).Times(10)
 	provider.On("Get", 6).Return("any")
 
 	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
@@ -90,14 +102,15 @@ func TestShortenURLService_GetShortURL_MaxCollisions(t *testing.T) {
 func TestShortenURLService_GetShortURL_RepositoryError(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
+	delStrategy := new(MockURLDelStrategy)
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t).Sugar()
-	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, *logger)
+	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, delStrategy, *logger)
 
 	originalURL := "https://original.com/long/url"
 	testError := errors.New("database failure")
 
-	repoMock.On("CreateURL", mock.Anything).Return(testError)
+	repoMock.On("CreateURL", mock.Anything, mock.Anything).Return(testError)
 	provider.On("Get", 6).Return("any")
 
 	shortURL, err := svc.GetShortURL(ctx, originalURL, user)
@@ -111,9 +124,10 @@ func TestShortenURLService_GetShortURL_RepositoryError(t *testing.T) {
 func TestShortenURLService_GetOriginalURL_Success(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
+	delStrategy := new(MockURLDelStrategy)
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t).Sugar()
-	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, *logger)
+	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, delStrategy, *logger)
 
 	shortCode := "abc123"
 	expectedURL := "https://original.com/long/url"
@@ -131,9 +145,10 @@ func TestShortenURLService_GetOriginalURL_Success(t *testing.T) {
 func TestShortenURLService_GetOriginalURL_NotFound(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
+	delStrategy := new(MockURLDelStrategy)
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t).Sugar()
-	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, *logger)
+	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, delStrategy, *logger)
 
 	shortCode := "invalid123"
 
@@ -150,9 +165,10 @@ func TestShortenURLService_GetOriginalURL_NotFound(t *testing.T) {
 func TestShortenURLService_GetOriginalURL_RepositoryError(t *testing.T) {
 	repoMock := new(repository.MockURLRepository)
 	provider := new(MockShortCodeProvider)
+	delStrategy := new(MockURLDelStrategy)
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t).Sugar()
-	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, *logger)
+	svc := service.NewShortenerService(repoMock, "https://short.com", 6, provider, delStrategy, *logger)
 
 	shortCode := "abc123"
 	testError := errors.New("database error")

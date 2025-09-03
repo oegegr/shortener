@@ -27,6 +27,11 @@ func (m *MockURLService) GetOriginalURL(ctx context.Context, shortURL string) (s
 }
 
 func (m *MockURLService) GetUserURL(ctx context.Context, userID string) ([]model.UserURL, error) {
-	args := m.Called(ctx, userID, userID)
+	args := m.Called(ctx, userID)
 	return args.Get(0).([]model.UserURL), args.Error(1)
+}
+
+func (m *MockURLService) DeleteUserURL(ctx context.Context, userID string, shortIDs []string) error {
+	args := m.Called(ctx, userID, shortIDs)
+	return args.Error(1)
 }

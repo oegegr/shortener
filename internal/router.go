@@ -34,6 +34,7 @@ func NewShortenerRouter(
 	router.Post("/api/shorten/batch", shortenerHandler.APIShortenBatchURL)
 	router.Post("/api/shorten", shortenerHandler.APIShortenURL)
 	router.Get("/api/user/urls", shortenerHandler.APIUserURL)
+	router.Delete("/api/user/urls", shortenerHandler.APIUserBatchDeleteURL)
 	router.Post("/*", shortenerHandler.ShortenURL)
 	router.Get("/{short_url}", shortenerHandler.RedirectToOriginalURL)
 

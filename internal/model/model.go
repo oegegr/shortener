@@ -24,6 +24,8 @@ type UserURL struct {
 	URL     string `json:"original_url"`
 }
 
+type ShortenBatchDeleteRequest []string
+
 type ShortenBatchRequest []BatchRequest
 
 type BatchRequest struct {
@@ -46,12 +48,14 @@ type URLItem struct {
 	ShortID string `json:"short_id"`
 	URL     string `json:"original_url"`
 	UserID  string `json:"user_id"`
+	IsDeleted bool `json:"id_deleted"`
 }
 
-func NewURLItem(url string, id string, userID string) *URLItem {
+func NewURLItem(url string, id string, userID string, isDeleted bool) *URLItem {
 	return &URLItem{
 		URL:     url,
 		ShortID: id,
 		UserID: userID,
+		IsDeleted: isDeleted,
 	}
 }
