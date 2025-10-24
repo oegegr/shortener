@@ -16,16 +16,15 @@ type Claims struct {
 
 type JWTParser struct {
 	jwtSecret string
-	logger zap.SugaredLogger
+	logger    zap.SugaredLogger
 }
 
 var (
 	ErrInvalidJWTToken = errors.New("invalid token")
-
 )
 
 func NewJWTParser(jwtSecret string, logger zap.SugaredLogger) JWTParser {
-	return JWTParser{jwtSecret, logger} 
+	return JWTParser{jwtSecret, logger}
 }
 
 func (v *JWTParser) CreateNewJWTToken(userID string) (string, error) {

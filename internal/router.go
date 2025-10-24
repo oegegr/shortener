@@ -2,21 +2,21 @@ package internal
 
 import (
 	"github.com/go-chi/chi/v5"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/oegegr/shortener/internal/handler"
 	"github.com/oegegr/shortener/internal/middleware"
-	"github.com/oegegr/shortener/internal/service"
 	"github.com/oegegr/shortener/internal/repository"
+	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func NewShortenerRouter(
 	logger zap.SugaredLogger,
 	service service.URLShortener,
 	jwtParser service.JWTParser,
-	repo repository.URLRepository, 
+	repo repository.URLRepository,
 	logAudit service.LogAuditManager,
 ) *chi.Mux {
 

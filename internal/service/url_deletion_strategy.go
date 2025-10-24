@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync"
-    "time"
-    "errors"
+	"time"
 
 	"github.com/oegegr/shortener/internal/repository"
 	"go.uber.org/zap"
@@ -20,7 +20,7 @@ type QueueDeletionStrategy struct {
 	workerNum     int
 	deleteQueue   chan deleteTask
 	workerWG      sync.WaitGroup
-    waitTimeout   time.Duration 
+	waitTimeout   time.Duration
 }
 
 type deleteTask struct {
@@ -33,7 +33,7 @@ func NewQueueURLDeletionStrategy(
 	logger zap.SugaredLogger,
 	workerNum int,
 	taskNum int,
-    waitTimeout time.Duration,
+	waitTimeout time.Duration,
 
 ) *QueueDeletionStrategy {
 	delStrategy := &QueueDeletionStrategy{
@@ -41,7 +41,7 @@ func NewQueueURLDeletionStrategy(
 		logger:        logger,
 		workerNum:     workerNum,
 		deleteQueue:   make(chan deleteTask, taskNum),
-        waitTimeout:   waitTimeout,
+		waitTimeout:   waitTimeout,
 	}
 	delStrategy.Start()
 	return delStrategy
@@ -64,9 +64,9 @@ func (s *QueueDeletionStrategy) DeleteURL(ctx context.Context, shortIDs []string
 	select {
 	case s.deleteQueue <- deleteTask{ctx, shortIDs}:
 		return nil
-    default:
+	default:
 		s.logger.Error("delete queue is full")
-        return ErrDeleteQueueIsFull
+		return ErrDeleteQueueIsFull
 	}
 }
 
@@ -77,7 +77,7 @@ func (s *QueueDeletionStrategy) worker() {
 		err := s.urlRepository.DeleteURL(task.ctx, task.shortIDs)
 		if err != nil {
 			s.logger.Error(err)
-            continue
+			continue
 		}
 	}
 

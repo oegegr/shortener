@@ -52,7 +52,7 @@ func NewConfig() Config {
 	}
 
 	if jwtSecret, ok := os.LookupEnv("JWT_SECRET"); ok {
-		cfg.JWTSecret = jwtSecret 
+		cfg.JWTSecret = jwtSecret
 	}
 
 	if auditFile, ok := os.LookupEnv("AUDIT_FILE"); ok {
@@ -60,7 +60,7 @@ func NewConfig() Config {
 	}
 
 	if auditURL, ok := os.LookupEnv("AUDIT_URL"); ok {
-		cfg.AuditURL = auditURL 
+		cfg.AuditURL = auditURL
 	}
 
 	return cfg

@@ -90,7 +90,7 @@ func TestShortenUrl(t *testing.T) {
 	service := new(service.MockURLService)
 	userIDProvider := new(MockUserIDProvider)
 	app := handler.NewShortenerHandler(service, userIDProvider, logAudit)
-	
+
 	userIDProvider.On("Get", mock.Anything).Return("user", nil)
 
 	t.Run("Valid Shortening", func(t *testing.T) {

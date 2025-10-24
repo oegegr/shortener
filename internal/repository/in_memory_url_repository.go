@@ -23,7 +23,7 @@ type InMemoryURLRepository struct {
 }
 
 func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) (*InMemoryURLRepository, error) {
-	items, err := loadData(fileStoragePath, logger) 
+	items, err := loadData(fileStoragePath, logger)
 	if err != nil {
 		logger.Fatal("Failed to create InMemory repository with error: %w", err.Error())
 		return nil, err
@@ -49,10 +49,10 @@ func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) 
 	storage := &InMemoryURLRepository{
 		fileStoragePath: fileStoragePath,
 		logger:          logger,
-		persistent: fileStoragePath != "",
-		urlMap: urls,
-		shortIDMap: shortIDs,
-		userMap: users,
+		persistent:      fileStoragePath != "",
+		urlMap:          urls,
+		shortIDMap:      shortIDs,
+		userMap:         users,
 	}
 
 	return storage, nil
@@ -78,7 +78,6 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 		}
 	}
 
-
 	for _, item := range items {
 		repo.shortIDMap[item.ShortID] = item
 		repo.urlMap[item.URL] = item
@@ -91,7 +90,6 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 			return err
 		}
 	}
-
 
 	return nil
 }
@@ -117,7 +115,7 @@ func (repo *InMemoryURLRepository) DeleteURL(ctx context.Context, ids []string) 
 				userItems[idx].IsDeleted = true
 				break
 			}
-		} 
+		}
 
 	}
 
@@ -160,7 +158,7 @@ func (repo *InMemoryURLRepository) FindURLByUser(ctx context.Context, userID str
 		return nil, ErrRepoNotFound
 	}
 
-	result := mutable.Filter(items, func(item model.URLItem) bool {return item.IsDeleted})
+	result := mutable.Filter(items, func(item model.URLItem) bool { return item.IsDeleted })
 
 	if len(result) == 0 {
 		return nil, ErrRepoNotFound
@@ -204,5 +202,5 @@ func loadData(fileStoragePath string, logger zap.SugaredLogger) ([]model.URLItem
 		logger.Debugln("Load UrlItems", items)
 		return items, nil
 	}
-	return []model.URLItem{}, nil 
+	return []model.URLItem{}, nil
 }

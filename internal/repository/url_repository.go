@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	ErrRepoNotFound      = errors.New("item not found")
-	ErrRepoURLAlreadyExists = errors.New("url already exists")
+	ErrRepoNotFound             = errors.New("item not found")
+	ErrRepoURLAlreadyExists     = errors.New("url already exists")
 	ErrRepoShortIDAlreadyExists = errors.New("short id already exists")
 )
 

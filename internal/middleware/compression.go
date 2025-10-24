@@ -43,7 +43,7 @@ type compressWriter struct {
 	zipWriter       *gzip.Writer
 	compressedTypes []string
 	wroteHeader     bool
-	shouldCompress  bool 
+	shouldCompress  bool
 }
 
 func newCompressWriter(w http.ResponseWriter, ct []string) *compressWriter {
