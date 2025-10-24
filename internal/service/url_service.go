@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	app_error "github.com/oegegr/shortener/internal/error"
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
-	app_error "github.com/oegegr/shortener/internal/error"
 
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
@@ -52,7 +52,7 @@ func NewShortenerService(
 		shortURLDomain:    domain,
 		shortURLLength:    urlLength,
 		shortCodeProvider: codeProvider,
-	    urlDelStrategy:    urlDelStrategy,
+		urlDelStrategy:    urlDelStrategy,
 		logger:            logger,
 	}
 }
@@ -61,10 +61,10 @@ func (s *ShortenURLService) GetShortURL(ctx context.Context, url string, userID 
 	items, err := s.tryGetURLItem(ctx, []string{url}, userID)
 
 	if err != nil {
-	    if errors.Is(err, repository.ErrRepoURLAlreadyExists) {
+		if errors.Is(err, repository.ErrRepoURLAlreadyExists) {
 			return s.resolveURLConflict(ctx, url, err)
 		}
-		return "", err 
+		return "", err
 	}
 
 	return s.buildShortURL(items[0]), nil
@@ -86,7 +86,7 @@ func (s *ShortenURLService) GetUserURL(ctx context.Context, userID string) ([]mo
 	urls := []model.UserURL{}
 	for _, item := range items {
 		userURL := model.UserURL{
-			URL: item.URL,
+			URL:      item.URL,
 			ShortURL: s.buildShortURL(item),
 		}
 		urls = append(urls, userURL)
@@ -99,7 +99,7 @@ func (s *ShortenURLService) resolveURLConflict(ctx context.Context, url string, 
 	if err != nil {
 		return "", err
 	}
-	return s.buildShortURL(*item), urlConflict 
+	return s.buildShortURL(*item), urlConflict
 }
 
 func (s *ShortenURLService) GetShortURLBatch(ctx context.Context, urls []string, userID string) ([]string, error) {
@@ -122,7 +122,7 @@ func (s *ShortenURLService) GetOriginalURL(ctx context.Context, shortCode string
 	}
 
 	if urlItem.IsDeleted {
-		return "", app_error.ErrServiceURLGone 
+		return "", app_error.ErrServiceURLGone
 	}
 
 	return urlItem.URL, nil

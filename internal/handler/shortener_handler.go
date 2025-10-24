@@ -9,10 +9,10 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi/v5"
+	app_error "github.com/oegegr/shortener/internal/error"
 	"github.com/oegegr/shortener/internal/model"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
-	app_error "github.com/oegegr/shortener/internal/error"
 )
 
 const (
@@ -24,22 +24,28 @@ type UserIDProvider interface {
 }
 
 type ShortenerHandler struct {
-	URLService service.URLShortener
+	URLService     service.URLShortener
 	userIDProvider UserIDProvider
+	logAudit       service.LogAuditManager
 }
 
 func NewShortenerHandler(
 	service service.URLShortener,
 	provider UserIDProvider,
-	) ShortenerHandler {
+	logAudit service.LogAuditManager,
+) ShortenerHandler {
 	return ShortenerHandler{
-		URLService: service,
+		URLService:     service,
 		userIDProvider: provider,
+		logAudit:       logAudit,
 	}
 }
 
 func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	userID, _ := app.userIDProvider.Get(ctx)
+
 	shortURL := chi.URLParam(r, "short_url")
 	if shortURL == "" {
 		http.Error(w, "missing short url at params", http.StatusBadRequest)
@@ -58,11 +64,13 @@ func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *htt
 		return
 	}
 
+	app.logAudit.NotifyAllAuditors(ctx, *model.NewLogAuditItem(originalURL, userID, model.LogActionFollow))
 	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
 }
 
 func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
 	body, err := io.ReadAll(r.Body)
 	url := string(body)
 
@@ -77,7 +85,7 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	userID, err := app.userIDProvider.Get(ctx) 
+	userID, err := app.userIDProvider.Get(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -97,6 +105,7 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	app.logAudit.NotifyAllAuditors(ctx, *model.NewLogAuditItem(url, userID, model.LogActionShorten))
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
@@ -105,9 +114,9 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 func (app *ShortenerHandler) APIUserURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	userID, err := app.userIDProvider.Get(ctx) 
+	userID, err := app.userIDProvider.Get(ctx)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -143,7 +152,7 @@ func (app *ShortenerHandler) APIUserBatchDeleteURL(w http.ResponseWriter, r *htt
 		return
 	}
 
-	userID, err := app.userIDProvider.Get(ctx) 
+	userID, err := app.userIDProvider.Get(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -162,7 +171,6 @@ func (app *ShortenerHandler) APIUserBatchDeleteURL(w http.ResponseWriter, r *htt
 
 	w.WriteHeader(http.StatusAccepted)
 }
-
 
 func (app *ShortenerHandler) APIShortenBatchURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -187,7 +195,7 @@ func (app *ShortenerHandler) APIShortenBatchURL(w http.ResponseWriter, r *http.R
 		urls = append(urls, item.URL)
 	}
 
-	userID, err := app.userIDProvider.Get(ctx) 
+	userID, err := app.userIDProvider.Get(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -203,7 +211,7 @@ func (app *ShortenerHandler) APIShortenBatchURL(w http.ResponseWriter, r *http.R
 	for idx, shortURL := range shortURLs {
 		item := model.BatchResponse{
 			CorrelationID: req[idx].CorrelationID,
-			Result: shortURL,
+			Result:        shortURL,
 		}
 		resp = append(resp, item)
 	}
@@ -234,7 +242,7 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	userID, err := app.userIDProvider.Get(ctx) 
+	userID, err := app.userIDProvider.Get(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -254,6 +262,7 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	app.logAudit.NotifyAllAuditors(ctx, *model.NewLogAuditItem(req.URL, userID, model.LogActionShorten))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(model.ShortenResponse{Result: shortURL})

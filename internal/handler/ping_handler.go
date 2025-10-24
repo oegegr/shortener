@@ -19,7 +19,7 @@ func (p *PingHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	err := p.repo.Ping(ctx)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return 
-    }
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }

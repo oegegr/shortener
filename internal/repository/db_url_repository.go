@@ -11,13 +11,13 @@ import (
 )
 
 type DBURLRepository struct {
-	db *sql.DB
+	db     *sql.DB
 	logger zap.SugaredLogger
 }
 
 func NewDBURLRepository(db *sql.DB, logger zap.SugaredLogger) (*DBURLRepository, error) {
 	return &DBURLRepository{
-		db: db,
+		db:     db,
 		logger: logger,
 	}, nil
 }
@@ -29,7 +29,7 @@ func (r *DBURLRepository) Ping(ctx context.Context) error {
 func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem) error {
 	tx, err := r.db.Begin()
 	if err != nil {
-		return err 
+		return err
 	}
 	stmt, err := tx.Prepare("INSERT INTO url (url, short_id, user_id, is_deleted) VALUES ($1, $2, $3, $4)")
 	if err != nil {
@@ -44,8 +44,8 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 
 		if err != nil {
 			if strings.Contains(err.Error(), "23505") {
-					return ErrRepoURLAlreadyExists 
-				}
+				return ErrRepoURLAlreadyExists
+			}
 
 			r.logger.Errorf("sql request execution error: %v", err)
 			tx.Rollback()
@@ -58,7 +58,7 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 func (r *DBURLRepository) DeleteURL(ctx context.Context, ids []string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
-		return err 
+		return err
 	}
 	stmt, err := tx.Prepare("UPDATE url SET is_deleted = true WHERE short_id = ANY($1)")
 	if err != nil {
@@ -66,7 +66,6 @@ func (r *DBURLRepository) DeleteURL(ctx context.Context, ids []string) error {
 		return err
 	}
 	defer stmt.Close()
-
 
 	_, err = stmt.Exec(ids)
 
@@ -77,8 +76,6 @@ func (r *DBURLRepository) DeleteURL(ctx context.Context, ids []string) error {
 	}
 	return tx.Commit()
 }
-
- 
 
 func (r *DBURLRepository) FindURLByURL(ctx context.Context, url string) (*model.URLItem, error) {
 	stmt, err := r.db.Prepare("SELECT url, short_id , user_id FROM url WHERE url = $1")
@@ -93,7 +90,7 @@ func (r *DBURLRepository) FindURLByURL(ctx context.Context, url string) (*model.
 	if err != nil {
 		if err == sql.ErrNoRows {
 			r.logger.Debugf("url not found %s", url)
-			return nil, ErrRepoNotFound 
+			return nil, ErrRepoNotFound
 		}
 		r.logger.Errorf("sql execution error: %v", err)
 		return nil, err
@@ -115,8 +112,8 @@ func (r *DBURLRepository) FindURLByUser(ctx context.Context, userID string) ([]m
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			r.logger.Debugf("user not found %s", )
-			return nil, ErrRepoNotFound 
+			r.logger.Debugf("user not found %s")
+			return nil, ErrRepoNotFound
 		}
 		r.logger.Errorf("sql execution error: %v", err)
 		return nil, err

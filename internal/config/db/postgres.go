@@ -7,13 +7,13 @@ import (
 	"github.com/oegegr/shortener/internal/config"
 	"go.uber.org/zap"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func NewDB(c config.Config, logger *zap.SugaredLogger) (*sql.DB, error){
+func NewDB(c config.Config, logger *zap.SugaredLogger) (*sql.DB, error) {
 	db, err := sql.Open("pgx", c.DBConnectionString)
 
 	if err != nil {
