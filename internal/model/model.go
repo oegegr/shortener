@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"time"
 )
 
 var (
@@ -50,6 +51,32 @@ type URLItem struct {
 	UserID  string `json:"user_id"`
 	IsDeleted bool `json:"id_deleted"`
 }
+
+type LogAuditItem struct {
+	TS  int64 `json:"ts"`
+	Action LogAction `json:"action"`
+	UserID  *string `json:"user_id,omitempty"`
+	URL     string `json:"url"`
+}
+func NewLogAuditItem(url string, userID string, action LogAction) *LogAuditItem {
+	var user *string
+	if userID != "" {
+		user = &userID 
+	}
+	return &LogAuditItem{
+		TS: time.Now().Unix(), 
+		Action: action,
+		UserID: user,
+		URL: url,
+	}
+}
+
+type LogAction string 
+
+const(
+	LogActionShorten LogAction = "shorten"
+	LogActionFollow LogAction = "follow"
+)
 
 func NewURLItem(url string, id string, userID string, isDeleted bool) *URLItem {
 	return &URLItem{

@@ -17,9 +17,10 @@ func NewShortenerRouter(
 	service service.URLShortener,
 	jwtParser service.JWTParser,
 	repo repository.URLRepository, 
+	logAudit service.LogAuditManager,
 ) *chi.Mux {
 
-	shortenerHandler := handler.NewShortenerHandler(service, &middleware.AuthContextUserIDPovider{})
+	shortenerHandler := handler.NewShortenerHandler(service, &middleware.AuthContextUserIDPovider{}, logAudit)
 	pingHandler := handler.NewPingHandler(repo)
 
 	router := chi.NewRouter()

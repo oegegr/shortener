@@ -26,20 +26,26 @@ type UserIDProvider interface {
 type ShortenerHandler struct {
 	URLService service.URLShortener
 	userIDProvider UserIDProvider
+	logAudit service.LogAuditManager 
 }
 
 func NewShortenerHandler(
 	service service.URLShortener,
 	provider UserIDProvider,
+	logAudit service.LogAuditManager,
 	) ShortenerHandler {
 	return ShortenerHandler{
 		URLService: service,
 		userIDProvider: provider,
+		logAudit: logAudit,
 	}
 }
 
 func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	userID, _ := app.userIDProvider.Get(ctx) 
+
 	shortURL := chi.URLParam(r, "short_url")
 	if shortURL == "" {
 		http.Error(w, "missing short url at params", http.StatusBadRequest)
@@ -58,11 +64,13 @@ func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *htt
 		return
 	}
 
+	app.logAudit.NotifyAllAuditors(ctx, *model.NewLogAuditItem(originalURL, userID, model.LogActionFollow))
 	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
 }
 
 func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	
 	body, err := io.ReadAll(r.Body)
 	url := string(body)
 
@@ -97,6 +105,7 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	app.logAudit.NotifyAllAuditors(ctx, *model.NewLogAuditItem(url, userID, model.LogActionShorten))
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortURL))
@@ -107,7 +116,7 @@ func (app *ShortenerHandler) APIUserURL(w http.ResponseWriter, r *http.Request) 
 
 	userID, err := app.userIDProvider.Get(ctx) 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -254,6 +263,7 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	app.logAudit.NotifyAllAuditors(ctx, *model.NewLogAuditItem(req.URL, userID, model.LogActionShorten))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(model.ShortenResponse{Result: shortURL})

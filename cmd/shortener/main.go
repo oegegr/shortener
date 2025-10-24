@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 	"time"
+	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/oegegr/shortener/internal"
@@ -55,6 +56,20 @@ func createShortnerService(
 	)
 }
 
+func createLogAudit(c config.Config) service.LogAuditManager {
+	auditors := make([]service.LogAuditor, 0, 2)
+
+	if c.AuditFile != "" {
+		auditors = append(auditors, service.NewFileLogAuditor(c.AuditFile))
+	}
+
+	if c.AuditURL != "" {
+		auditors = append(auditors, service.NewHttpLogAuditor(c.AuditURL))
+	}
+
+	return service.NewDefaultLogAuditManager(auditors)
+}
+
 func createJWTParser(
 	c config.Config,
 	logger zap.SugaredLogger,
@@ -72,14 +87,15 @@ func main() {
 	defer logger.Sync()
 
 	if err != nil {
-		panic("failed to create logger: " + err.Error())
+		os.Exit(1)
 	}
 
 	var dbConn *sql.DB
 	if c.DBConnectionString != "" {
 		dbConn, err = db.NewDB(c, logger)
 		if err != nil {
-			panic("failed to create db connection: " + err.Error())
+			logger.Error("failed to create db connection: %w", err)
+			os.Exit(1)
 		}
 
 		defer dbConn.Close()
@@ -87,7 +103,8 @@ func main() {
 
 	repo, err := createURLRepository(c, *logger, dbConn)
 	if err != nil {
-		panic("failed to create db connection: " + err.Error())
+		logger.Error("failed to create repository: %w", err)
+		os.Exit(1)
 	}
 
 
@@ -98,7 +115,9 @@ func main() {
 
 	jwtParser := createJWTParser(c, *logger)
 
-	router := internal.NewShortenerRouter(*logger, service, jwtParser, repo)
+	logAudit := createLogAudit(c)
+
+	router := internal.NewShortenerRouter(*logger, service, jwtParser, repo, logAudit)
 
 	go func() {
 		logger.Infoln("Server starting")

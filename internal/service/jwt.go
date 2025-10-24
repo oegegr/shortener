@@ -19,6 +19,11 @@ type JWTParser struct {
 	logger zap.SugaredLogger
 }
 
+var (
+	ErrInvalidJWTToken = errors.New("invalid token")
+
+)
+
 func NewJWTParser(jwtSecret string, logger zap.SugaredLogger) JWTParser {
 	return JWTParser{jwtSecret, logger} 
 }
@@ -50,7 +55,7 @@ func (v *JWTParser) UserFromJWTToken(tokenString string) (string, error) {
 	}
 
 	if !token.Valid {
-		return "", errors.New("invalid token")
+		return "", ErrInvalidJWTToken
 	}
 
 	return claims.UserID, nil
