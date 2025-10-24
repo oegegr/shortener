@@ -30,8 +30,10 @@ func (m *MockUserIDProvider) Get(ctx context.Context) (string, error) {
 func TestRedirectToOriginalUrl(t *testing.T) {
 	logAudit := new(service.MockLogAuditManager)
 	service := new(service.MockURLService)
-	userIDProvider := new(handler.UserIDProvider)
-	app := handler.NewShortenerHandler(service, *userIDProvider, logAudit)
+	userIDProvider := new(MockUserIDProvider)
+	app := handler.NewShortenerHandler(service, userIDProvider, logAudit)
+
+	userIDProvider.On("Get", mock.Anything).Return("user", nil)
 
 	t.Run("Invalid Method", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/test", nil)
