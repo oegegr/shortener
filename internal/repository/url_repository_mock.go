@@ -17,7 +17,12 @@ func (m *MockURLRepository) Ping(ctx context.Context) error {
 }
 
 func (m *MockURLRepository) CreateURL(ctx context.Context, urls []model.URLItem) error {
-	args := m.Called(urls)
+	args := m.Called(ctx, urls)
+	return args.Error(0)
+}
+
+func (m *MockURLRepository) DeleteURL(ctx context.Context, ids []string) error {
+	args := m.Called(ctx, ids)
 	return args.Error(0)
 }
 
@@ -29,6 +34,11 @@ func (m *MockURLRepository) FindURLByID(ctx context.Context, id string) (*model.
 func (m *MockURLRepository) FindURLByURL(ctx context.Context, url string) (*model.URLItem, error) {
 	args := m.Called(url)
 	return args.Get(0).(*model.URLItem), args.Error(1)
+}
+
+func (m *MockURLRepository) FindURLByUser(ctx context.Context, id string) ([]model.URLItem, error) {
+	args := m.Called(id)
+	return args.Get(0).([]model.URLItem), args.Error(1)
 }
 
 func (m *MockURLRepository) Exists(ctx context.Context, id string) bool {

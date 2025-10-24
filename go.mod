@@ -5,8 +5,11 @@ go 1.24.4
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/go-chi/chi/v5 v5.2.2
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/golang-migrate/migrate/v4 v4.18.3
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.5
+	github.com/samber/lo v1.51.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 )

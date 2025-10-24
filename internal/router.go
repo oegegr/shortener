@@ -15,19 +15,26 @@ import (
 func NewShortenerRouter(
 	logger zap.SugaredLogger,
 	service service.URLShortener,
+	jwtParser service.JWTParser,
 	repo repository.URLRepository, 
 ) *chi.Mux {
 
-	shortenerHandler := handler.NewShortenerHandler(service)
+	shortenerHandler := handler.NewShortenerHandler(service, &middleware.AuthContextUserIDPovider{})
 	pingHandler := handler.NewPingHandler(repo)
 
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(logger))
 	typesToGzip := []string{"application/json", "text/html"}
-	router.Use(middleware.GzipMiddleware(typesToGzip))
+	router.Use(
+		middleware.ZapLogger(logger),
+		middleware.GzipMiddleware(typesToGzip),
+		middleware.AuthMiddleware(logger, jwtParser),
+	)
 	router.Get("/ping", pingHandler.Ping)
 	router.Post("/api/shorten/batch", shortenerHandler.APIShortenBatchURL)
 	router.Post("/api/shorten", shortenerHandler.APIShortenURL)
+	router.Get("/api/user/urls", shortenerHandler.APIUserURL)
+	router.Delete("/api/user/urls", shortenerHandler.APIUserBatchDeleteURL)
 	router.Post("/*", shortenerHandler.ShortenURL)
 	router.Get("/{short_url}", shortenerHandler.RedirectToOriginalURL)
 

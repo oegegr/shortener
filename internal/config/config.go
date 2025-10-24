@@ -12,6 +12,7 @@ type Config struct {
 	FileStoragePath    string
 	DBConnectionString string
 	LogLevel           string
+	JWTSecret          string
 }
 
 func NewConfig() Config {
@@ -22,6 +23,7 @@ func NewConfig() Config {
 	flag.StringVar(&cfg.FileStoragePath, "f", "", "file path to save storage")
 	flag.StringVar(&cfg.DBConnectionString, "d", "", "database connection string")
 	flag.StringVar(&cfg.LogLevel, "l", "DEBUG", "log level")
+	flag.StringVar(&cfg.JWTSecret, "s", "jwt-secret-key", "jwt secret key")
 	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
 	flag.Parse()
 
@@ -43,6 +45,10 @@ func NewConfig() Config {
 
 	if dbConnectionString, ok := os.LookupEnv("DATABASE_DSN"); ok {
 		cfg.DBConnectionString = dbConnectionString
+	}
+
+	if jwtSecret, ok := os.LookupEnv("JWT_SECRET"); ok {
+		cfg.JWTSecret = jwtSecret 
 	}
 
 	return cfg

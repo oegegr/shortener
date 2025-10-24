@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/oegegr/shortener/internal/model"
@@ -30,7 +31,7 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 	if err != nil {
 		return err 
 	}
-	stmt, err := tx.Prepare("INSERT INTO url (url, short_id) VALUES ($1, $2)")
+	stmt, err := tx.Prepare("INSERT INTO url (url, short_id, user_id, is_deleted) VALUES ($1, $2, $3, $4)")
 	if err != nil {
 		r.logger.Errorf("sql request validation error: %v", err)
 		return err
@@ -39,7 +40,7 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 
 	for _, item := range urlItem {
 
-		_, err = stmt.Exec(item.URL, item.ShortID)
+		_, err = stmt.Exec(item.URL, item.ShortID, item.UserID, item.IsDeleted)
 
 		if err != nil {
 			if strings.Contains(err.Error(), "23505") {
@@ -54,10 +55,33 @@ func (r *DBURLRepository) CreateURL(ctx context.Context, urlItem []model.URLItem
 	return tx.Commit()
 }
 
+func (r *DBURLRepository) DeleteURL(ctx context.Context, ids []string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err 
+	}
+	stmt, err := tx.Prepare("UPDATE url SET is_deleted = true WHERE short_id = ANY($1)")
+	if err != nil {
+		r.logger.Errorf("sql request validation error: %v", err)
+		return err
+	}
+	defer stmt.Close()
+
+
+	_, err = stmt.Exec(ids)
+
+	if err != nil {
+		r.logger.Errorf("sql request execution error: %v", err)
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
  
 
 func (r *DBURLRepository) FindURLByURL(ctx context.Context, url string) (*model.URLItem, error) {
-	stmt, err := r.db.Prepare("SELECT url, short_id FROM url WHERE url = $1")
+	stmt, err := r.db.Prepare("SELECT url, short_id , user_id FROM url WHERE url = $1")
 	if err != nil {
 		r.logger.Errorf("sql validation error: %v", err)
 		return nil, err
@@ -65,7 +89,7 @@ func (r *DBURLRepository) FindURLByURL(ctx context.Context, url string) (*model.
 	defer stmt.Close()
 
 	var urlItem model.URLItem
-	err = stmt.QueryRow(url).Scan(&urlItem.URL, &urlItem.ShortID)
+	err = stmt.QueryRow(url).Scan(&urlItem.URL, &urlItem.ShortID, &urlItem.UserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			r.logger.Debugf("url not found %s", url)
@@ -78,8 +102,41 @@ func (r *DBURLRepository) FindURLByURL(ctx context.Context, url string) (*model.
 	return &urlItem, nil
 }
 
+func (r *DBURLRepository) FindURLByUser(ctx context.Context, userID string) ([]model.URLItem, error) {
+	stmt, err := r.db.Prepare("SELECT url, short_id, user_id FROM url WHERE user_id = $1")
+	if err != nil {
+		r.logger.Errorf("sql validation error: %v", err)
+		return nil, err
+	}
+	defer stmt.Close()
+
+	var items []model.URLItem
+	rows, err := stmt.Query(userID)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			r.logger.Debugf("user not found %s", )
+			return nil, ErrRepoNotFound 
+		}
+		r.logger.Errorf("sql execution error: %v", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		var item model.URLItem
+		rows.Scan(&item.URL, &item.ShortID, &item.UserID)
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row deserialization error %w", err)
+	}
+
+	return items, nil
+}
+
 func (r *DBURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
-	stmt, err := r.db.Prepare("SELECT url, short_id FROM url WHERE short_id = $1")
+	stmt, err := r.db.Prepare("SELECT url, short_id , is_deleted FROM url WHERE short_id = $1")
 	if err != nil {
 		r.logger.Errorf("sql validation error: %v", err)
 		return nil, err
@@ -87,7 +144,7 @@ func (r *DBURLRepository) FindURLByID(ctx context.Context, id string) (*model.UR
 	defer stmt.Close()
 
 	var urlItem model.URLItem
-	err = stmt.QueryRow(id).Scan(&urlItem.URL, &urlItem.ShortID)
+	err = stmt.QueryRow(id).Scan(&urlItem.URL, &urlItem.ShortID, &urlItem.IsDeleted)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			r.logger.Debugf("url not found %s", id)
