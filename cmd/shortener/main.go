@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
-	"time"
 	"os"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/oegegr/shortener/internal"
@@ -35,7 +35,7 @@ func createURLDeletionStrategy(
 ) *service.QueueDeletionStrategy {
 	workerNum := 5
 	taskNum := 1000
-	waitTimeout, _  := time.ParseDuration("PT1S")
+	waitTimeout, _ := time.ParseDuration("PT1S")
 	return service.NewQueueURLDeletionStrategy(repo, logger, workerNum, taskNum, waitTimeout)
 }
 
@@ -64,7 +64,7 @@ func createLogAudit(c config.Config) service.LogAuditManager {
 	}
 
 	if c.AuditURL != "" {
-		auditors = append(auditors, service.NewHttpLogAuditor(c.AuditURL))
+		auditors = append(auditors, service.NewHTTPLogAuditor(c.AuditURL))
 	}
 
 	return service.NewDefaultLogAuditManager(auditors)
@@ -107,8 +107,7 @@ func main() {
 		os.Exit(1)
 	}
 
-
-	urlDelStrategy := createURLDeletionStrategy(*logger, repo) 
+	urlDelStrategy := createURLDeletionStrategy(*logger, repo)
 	defer urlDelStrategy.Stop()
 
 	service := createShortnerService(c, *logger, repo, urlDelStrategy)

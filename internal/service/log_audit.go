@@ -30,10 +30,7 @@ func NewDefaultLogAuditManager(auditors []LogAuditor) *DefaultLogAuditManager {
 
 func (m *DefaultLogAuditManager) NotifyAllAuditors(ctx context.Context, logItem model.LogAuditItem) {
 	for _, auditor := range m.auditors {
-		err := auditor.SaveLogItem(ctx, logItem)
-		if err != nil {
-
-		}
+		auditor.SaveLogItem(ctx, logItem)
 	}
 }
 
@@ -80,13 +77,13 @@ func (a *FileLogAuditor) SaveLogItem(ctx context.Context, item model.LogAuditIte
 	return nil
 }
 
-type HttpLogAuditor struct {
+type HTTPLogAuditor struct {
 	httpAddress string
 	client      *http.Client
 }
 
-func NewHttpLogAuditor(httpAddress string) *HttpLogAuditor {
-	return &HttpLogAuditor{
+func NewHTTPLogAuditor(httpAddress string) *HTTPLogAuditor{
+	return &HTTPLogAuditor{
 		httpAddress: httpAddress,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
@@ -94,7 +91,7 @@ func NewHttpLogAuditor(httpAddress string) *HttpLogAuditor {
 	}
 }
 
-func (a *HttpLogAuditor) SaveLogItem(ctx context.Context, item model.LogAuditItem) error {
+func (a *HTTPLogAuditor) SaveLogItem(ctx context.Context, item model.LogAuditItem) error {
 	data, err := json.Marshal(item)
 	if err != nil {
 		return fmt.Errorf("failed to marshal log item: %w", err)
