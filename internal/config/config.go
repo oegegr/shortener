@@ -1,3 +1,4 @@
+// Package config содержит реализацию конфигурации приложения.
 package config
 
 import (
@@ -5,18 +6,30 @@ import (
 	"os"
 )
 
+// Config представляет структуру конфигурации приложения.
 type Config struct {
+	// ServerAddress представляет адрес сервера.
 	ServerAddress      string
+	// BaseURL представляет базовый URL-адрес для сокращенных URL-адресов.
 	BaseURL            string
+	// ShortURLLength представляет длину сокращенного URL-адреса.
 	ShortURLLength     int
+	// FileStoragePath представляет путь к файлу для хранения данных.
 	FileStoragePath    string
+	// DBConnectionString представляет строку подключения к базе данных.
 	DBConnectionString string
+	// LogLevel представляет уровень логирования.
 	LogLevel           string
+	// JWTSecret представляет секретный ключ для JWT-токенов.
 	JWTSecret          string
+	// AuditFile представляет файл для хранения аудит-логов.
 	AuditFile          string
+	// AuditURL представляет URL-адрес для отправки аудит-логов.
 	AuditURL           string
 }
 
+// NewConfig возвращает новый экземпляр конфигурации приложения.
+// Эта функция парсит флаги командной строки и переменные окружения для инициализации конфигурации.
 func NewConfig() Config {
 	cfg := Config{}
 

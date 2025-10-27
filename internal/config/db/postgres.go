@@ -1,3 +1,4 @@
+// Package db содержит реализацию подключения к базе данных PostgreSQL.
 package db
 
 import (
@@ -13,6 +14,8 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// NewDB возвращает новый экземпляр подключения к базе данных PostgreSQL.
+// Эта функция принимает конфигурацию приложения и логгер, и возвращает подключение к базе данных и ошибку.
 func NewDB(c config.Config, logger *zap.SugaredLogger) (*sql.DB, error) {
 	db, err := sql.Open("pgx", c.DBConnectionString)
 
