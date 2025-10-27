@@ -82,7 +82,10 @@ type URLItem struct {
 // Эта функция принимает URL-адрес, сокращенный идентификатор, идентификатор пользователя и флаг удаления.
 func NewURLItem(url string, id string, userID string, isDeleted bool) *URLItem {
 	return &URLItem{
-		// ...
+		URL:       url,
+		ShortID:   id,
+		UserID:    userID,
+		IsDeleted: isDeleted,
 	}
 }
 
