@@ -9,23 +9,23 @@ import (
 // Config представляет структуру конфигурации приложения.
 type Config struct {
 	// ServerAddress представляет адрес сервера.
-	ServerAddress      string
+	ServerAddress string
 	// BaseURL представляет базовый URL-адрес для сокращенных URL-адресов.
-	BaseURL            string
+	BaseURL string
 	// ShortURLLength представляет длину сокращенного URL-адреса.
-	ShortURLLength     int
+	ShortURLLength int
 	// FileStoragePath представляет путь к файлу для хранения данных.
-	FileStoragePath    string
+	FileStoragePath string
 	// DBConnectionString представляет строку подключения к базе данных.
 	DBConnectionString string
 	// LogLevel представляет уровень логирования.
-	LogLevel           string
+	LogLevel string
 	// JWTSecret представляет секретный ключ для JWT-токенов.
-	JWTSecret          string
+	JWTSecret string
 	// AuditFile представляет файл для хранения аудит-логов.
-	AuditFile          string
+	AuditFile string
 	// AuditURL представляет URL-адрес для отправки аудит-логов.
-	AuditURL           string
+	AuditURL string
 }
 
 // NewConfig возвращает новый экземпляр конфигурации приложения.
