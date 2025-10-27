@@ -20,7 +20,7 @@ const (
 	shortenFailure = "failed to get short url"
 )
 
-// UserIDProvider провайдер предоставляет доступ к индентификатору пользователя 
+// UserIDProvider провайдер предоставляет доступ к индентификатору пользователя
 type UserIDProvider interface {
 	// Get возвращает идентификатор пользователя из контекста запроса.
 	Get(ctx context.Context) (string, error)
