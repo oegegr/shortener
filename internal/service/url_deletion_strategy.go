@@ -1,3 +1,4 @@
+// Package service содержит реализацию стратегии удаления URL-адресов.
 package service
 
 import (
@@ -10,31 +11,41 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	ErrDeleteQueueIsFull = errors.New("delete queue is full")
-)
+// ErrDeleteQueueIsFull представляет ошибку, которая возникает при переполнении очереди удаления.
+var ErrDeleteQueueIsFull = errors.New("delete queue is full")
 
+// QueueDeletionStrategy представляет реализацию стратегии удаления URL-адресов с использованием очереди.
 type QueueDeletionStrategy struct {
+	// urlRepository представляет репозиторий URL-адресов.
 	urlRepository repository.URLRepository
-	logger        zap.SugaredLogger
-	workerNum     int
-	deleteQueue   chan deleteTask
-	workerWG      sync.WaitGroup
-	waitTimeout   time.Duration
+	// logger представляет логгер для записи сообщений.
+	logger zap.SugaredLogger
+	// workerNum представляет количество рабочих потоков для удаления URL-адресов.
+	workerNum int
+	// deleteQueue представляет очередь удаления URL-адресов.
+	deleteQueue chan deleteTask
+	// workerWG представляет группу ожидания для рабочих потоков.
+	workerWG sync.WaitGroup
+	// waitTimeout представляет время ожидания для удаления URL-адресов.
+	waitTimeout time.Duration
 }
 
+// deleteTask представляет задачу удаления URL-адресов.
 type deleteTask struct {
-	ctx      context.Context
+	// ctx представляет контекст задачи.
+	ctx context.Context
+	// shortIDs представляет список идентификаторов URL-адресов для удаления.
 	shortIDs []string
 }
 
+// NewQueueURLDeletionStrategy возвращает новый экземпляр QueueDeletionStrategy.
+// Эта функция принимает репозиторий URL-адресов, логгер, количество рабочих потоков, размер очереди и время ожидания.
 func NewQueueURLDeletionStrategy(
 	repo repository.URLRepository,
 	logger zap.SugaredLogger,
 	workerNum int,
 	taskNum int,
 	waitTimeout time.Duration,
-
 ) *QueueDeletionStrategy {
 	delStrategy := &QueueDeletionStrategy{
 		urlRepository: repo,
@@ -47,6 +58,7 @@ func NewQueueURLDeletionStrategy(
 	return delStrategy
 }
 
+// Start запускает рабочие потоки для удаления URL-адресов.
 func (s *QueueDeletionStrategy) Start() {
 	s.workerWG.Add(s.workerNum)
 	for workerID := 0; workerID < s.workerNum; workerID++ {
@@ -54,13 +66,15 @@ func (s *QueueDeletionStrategy) Start() {
 	}
 }
 
+// Stop останавливает рабочие потоки для удаления URL-адресов.
 func (s *QueueDeletionStrategy) Stop() {
 	close(s.deleteQueue)
 	s.workerWG.Wait()
 }
 
+// DeleteURL добавляет задачу удаления URL-адресов в очередь.
+// Эта функция принимает контекст и список идентификаторов URL-адресов для удаления.
 func (s *QueueDeletionStrategy) DeleteURL(ctx context.Context, shortIDs []string) error {
-
 	select {
 	case s.deleteQueue <- deleteTask{ctx, shortIDs}:
 		return nil
@@ -70,6 +84,7 @@ func (s *QueueDeletionStrategy) DeleteURL(ctx context.Context, shortIDs []string
 	}
 }
 
+// worker представляет рабочий поток для удаления URL-адресов.
 func (s *QueueDeletionStrategy) worker() {
 	defer s.workerWG.Done()
 
@@ -80,5 +95,4 @@ func (s *QueueDeletionStrategy) worker() {
 			continue
 		}
 	}
-
 }

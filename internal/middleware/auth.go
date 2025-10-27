@@ -1,3 +1,4 @@
+// Package middleware содержит middleware-функции для обработки HTTP-запросов.
 package middleware
 
 import (
@@ -13,16 +14,20 @@ import (
 	"github.com/oegegr/shortener/internal/service"
 )
 
+// contextKey представляет ключ для контекста запроса.
 type contextKey string
 
+// userIDKey представляет ключ для идентификатора пользователя в контексте запроса.
 const (
 	userIDKey           contextKey = "userID"
 	cookieName          string     = "auth"
-	authorizationHeader string     = "Authrorization"
+	authorizationHeader string     = "Authorization"
 )
 
+// AuthContextUserIDPovider предоставляет провайдер для получения идентификатора пользователя из контекста запроса.
 type AuthContextUserIDPovider struct{}
 
+// Get возвращает идентификатор пользователя из контекста запроса.
 func (a *AuthContextUserIDPovider) Get(ctx context.Context) (string, error) {
 	value := ctx.Value(userIDKey)
 	if value == nil {
@@ -36,6 +41,7 @@ func (a *AuthContextUserIDPovider) Get(ctx context.Context) (string, error) {
 	return userID, nil
 }
 
+// AuthMiddleware возвращает middleware-функцию для аутентификации пользователей.
 func AuthMiddleware(logger zap.SugaredLogger, jwt service.JWTParser) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 
@@ -82,14 +88,17 @@ func AuthMiddleware(logger zap.SugaredLogger, jwt service.JWTParser) func(http.H
 	}
 }
 
+// generateUserID генерирует новый идентификатор пользователя.
 func generateUserID() string {
 	return uuid.New().String()
 }
 
+// setAuthorizationHeader устанавливает заголовок Authorization в HTTP-ответе.
 func setAuthorizationHeader(w http.ResponseWriter, token string) {
 	w.Header().Set(authorizationHeader, token)
 }
 
+// setAuthCookie устанавливает cookie с именем auth в HTTP-ответе.
 func setAuthCookie(w http.ResponseWriter, token string) {
 	cookie := &http.Cookie{
 		Name:     cookieName,
@@ -101,6 +110,7 @@ func setAuthCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, cookie)
 }
 
+// tryAuthorization пытается получить идентификатор пользователя из заголовка Authorization.
 func tryAuthorization(r *http.Request, v service.JWTParser) (string, error) {
 	header := r.Header.Get(authorizationHeader)
 
@@ -111,6 +121,7 @@ func tryAuthorization(r *http.Request, v service.JWTParser) (string, error) {
 	return "", nil
 }
 
+// tryCookies пытается получить идентификатор пользователя из cookie с именем auth.
 func tryCookies(r *http.Request, v service.JWTParser) (string, error) {
 	c, err := r.Cookie(cookieName)
 

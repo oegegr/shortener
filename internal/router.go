@@ -1,3 +1,4 @@
+// Package internal содержит реализацию роутера для приложения.
 package internal
 
 import (
@@ -12,6 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewShortenerRouter возвращает новый экземпляр роутера для приложения.
+// Эта функция принимает логгер, сервис сокращения URL-адресов, парсер JWT-токенов, репозиторий URL-адресов и менеджер аудита логов.
 func NewShortenerRouter(
 	logger zap.SugaredLogger,
 	service service.URLShortener,
@@ -19,7 +22,6 @@ func NewShortenerRouter(
 	repo repository.URLRepository,
 	logAudit service.LogAuditManager,
 ) *chi.Mux {
-
 	shortenerHandler := handler.NewShortenerHandler(service, &middleware.AuthContextUserIDPovider{}, logAudit)
 	pingHandler := handler.NewPingHandler(repo)
 

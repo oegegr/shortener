@@ -1,3 +1,4 @@
+// Package repository содержит реализацию репозитория для работы с URL-адресами в памяти.
 package repository
 
 import (
@@ -12,16 +13,26 @@ import (
 	"go.uber.org/zap"
 )
 
+// InMemoryURLRepository представляет репозиторий для работы с URL-адресами в памяти.
 type InMemoryURLRepository struct {
-	mu              sync.RWMutex
-	shortIDMap      map[string]model.URLItem
-	urlMap          map[string]model.URLItem
-	userMap         map[string][]model.URLItem
+	// mu представляет mutex для синхронизации доступа к данным.
+	mu sync.RWMutex
+	// shortIDMap представляет карту сокращенных идентификаторов URL-адресов.
+	shortIDMap map[string]model.URLItem
+	// urlMap представляет карту URL-адресов.
+	urlMap map[string]model.URLItem
+	// userMap представляет карту URL-адресов пользователя.
+	userMap map[string][]model.URLItem
+	// fileStoragePath представляет путь к файлу для хранения данных.
 	fileStoragePath string
-	logger          zap.SugaredLogger
-	persistent      bool
+	// logger представляет логгер для записи сообщений.
+	logger zap.SugaredLogger
+	// persistent представляет флаг, указывающий, следует ли хранить данные в файле.
+	persistent bool
 }
 
+// NewInMemoryURLRepository возвращает новый экземпляр InMemoryURLRepository.
+// Эта функция принимает путь к файлу для хранения данных и логгер.
 func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) (*InMemoryURLRepository, error) {
 	items, err := loadData(fileStoragePath, logger)
 	if err != nil {
@@ -58,10 +69,13 @@ func NewInMemoryURLRepository(fileStoragePath string, logger zap.SugaredLogger) 
 	return storage, nil
 }
 
+// Ping проверяет подключение к репозиторию.
 func (repo *InMemoryURLRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
+// CreateURL создает новые URL-адреса в репозитории.
+// Эта функция принимает список элементов URL-адресов для создания.
 func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.URLItem) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
@@ -81,7 +95,7 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 	for _, item := range items {
 		repo.shortIDMap[item.ShortID] = item
 		repo.urlMap[item.URL] = item
-		repo.userMap[item.ShortID] = append(repo.userMap[item.ShortID], item)
+		repo.userMap[item.UserID] = append(repo.userMap[item.UserID], item)
 	}
 
 	if repo.persistent {
@@ -94,6 +108,8 @@ func (repo *InMemoryURLRepository) CreateURL(ctx context.Context, items []model.
 	return nil
 }
 
+// DeleteURL удаляет URL-адреса из репозитория.
+// Эта функция принимает список идентификаторов URL-адресов для удаления.
 func (repo *InMemoryURLRepository) DeleteURL(ctx context.Context, ids []string) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
@@ -129,6 +145,8 @@ func (repo *InMemoryURLRepository) DeleteURL(ctx context.Context, ids []string) 
 	return nil
 }
 
+// FindURLByID находит URL-адрес в репозитории по идентификатору URL-адреса.
+// Эта функция принимает идентификатор URL-адреса для поиска.
 func (repo *InMemoryURLRepository) FindURLByID(ctx context.Context, id string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -139,6 +157,8 @@ func (repo *InMemoryURLRepository) FindURLByID(ctx context.Context, id string) (
 	return model.NewURLItem(item.URL, id, item.UserID, item.IsDeleted), nil
 }
 
+// FindURLByURL находит URL-адрес в репозитории по URL-адресу.
+// Эта функция принимает URL-адрес для поиска.
 func (repo *InMemoryURLRepository) FindURLByURL(ctx context.Context, url string) (*model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -149,6 +169,8 @@ func (repo *InMemoryURLRepository) FindURLByURL(ctx context.Context, url string)
 	return model.NewURLItem(url, item.ShortID, item.UserID, item.IsDeleted), nil
 }
 
+// FindURLByUser находит URL-адреса в репозитории по идентификатору пользователя.
+// Эта функция принимает идентификатор пользователя для поиска.
 func (repo *InMemoryURLRepository) FindURLByUser(ctx context.Context, userID string) ([]model.URLItem, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -158,7 +180,7 @@ func (repo *InMemoryURLRepository) FindURLByUser(ctx context.Context, userID str
 		return nil, ErrRepoNotFound
 	}
 
-	result := mutable.Filter(items, func(item model.URLItem) bool { return item.IsDeleted })
+	result := mutable.Filter(items, func(item model.URLItem) bool { return !item.IsDeleted })
 
 	if len(result) == 0 {
 		return nil, ErrRepoNotFound
@@ -166,6 +188,8 @@ func (repo *InMemoryURLRepository) FindURLByUser(ctx context.Context, userID str
 	return result, nil
 }
 
+// Exists проверяет, существует ли URL-адрес в репозитории.
+// Эта функция принимает идентификатор URL-адреса для проверки.
 func (repo *InMemoryURLRepository) Exists(ctx context.Context, id string) bool {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
@@ -173,6 +197,7 @@ func (repo *InMemoryURLRepository) Exists(ctx context.Context, id string) bool {
 	return ok
 }
 
+// saveData сохраняет данные в файле.
 func (repo *InMemoryURLRepository) saveData() error {
 	file, err := os.OpenFile(repo.fileStoragePath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -181,14 +206,15 @@ func (repo *InMemoryURLRepository) saveData() error {
 	defer file.Close()
 
 	var items []model.URLItem
-	for id, item := range repo.shortIDMap {
-		repo.logger.Debugln("Create UrlItem", id, item.URL)
-		items = append(items, *model.NewURLItem(item.URL, id, item.UserID, item.IsDeleted))
+	for _, item := range repo.shortIDMap {
+		repo.logger.Debugln("Create UrlItem", item.ShortID, item.URL)
+		items = append(items, *model.NewURLItem(item.URL, item.ShortID, item.UserID, item.IsDeleted))
 	}
 
 	return json.NewEncoder(file).Encode(items)
 }
 
+// loadData загружает данные из файла.
 func loadData(fileStoragePath string, logger zap.SugaredLogger) ([]model.URLItem, error) {
 	var items []model.URLItem
 	if fileStoragePath != "" {

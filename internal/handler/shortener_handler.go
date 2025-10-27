@@ -1,3 +1,4 @@
+// Package handler содержит обработчики HTTP-запросов для работы с URL-адресами.
 package handler
 
 import (
@@ -20,15 +21,21 @@ const (
 )
 
 type UserIDProvider interface {
+	// Get возвращает идентификатор пользователя из контекста запроса.
 	Get(ctx context.Context) (string, error)
 }
 
+// ShortenerHandler обрабатывает HTTP-запросы для работы с URL-адресами.
 type ShortenerHandler struct {
-	URLService     service.URLShortener
+	// URLService предоставляет сервис для работы с URL-адресами.
+	URLService service.URLShortener
+	// userIDProvider предоставляет провайдер для получения идентификатора пользователя.
 	userIDProvider UserIDProvider
-	logAudit       service.LogAuditManager
+	// logAudit предоставляет менеджер для аудита логов.
+	logAudit service.LogAuditManager
 }
 
+// NewShortenerHandler возвращает новый экземпляр ShortenerHandler.
 func NewShortenerHandler(
 	service service.URLShortener,
 	provider UserIDProvider,
@@ -41,6 +48,7 @@ func NewShortenerHandler(
 	}
 }
 
+// RedirectToOriginalURL обрабатывает HTTP-запрос на перенаправление на оригинальный URL-адрес.
 func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -68,6 +76,7 @@ func (app *ShortenerHandler) RedirectToOriginalURL(w http.ResponseWriter, r *htt
 	http.Redirect(w, r, originalURL, http.StatusTemporaryRedirect)
 }
 
+// ShortenURL обрабатывает HTTP-запрос на сокращение URL-адреса.
 func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -111,6 +120,7 @@ func (app *ShortenerHandler) ShortenURL(w http.ResponseWriter, r *http.Request) 
 	w.Write([]byte(shortURL))
 }
 
+// APIUserURL обрабатывает HTTP-запрос на получение URL-адресов пользователя.
 func (app *ShortenerHandler) APIUserURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -139,6 +149,7 @@ func (app *ShortenerHandler) APIUserURL(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(resp)
 }
 
+// APIUserBatchDeleteURL обрабатывает HTTP-запрос на удаление URL-адресов пользователя в пакетном режиме.
 func (app *ShortenerHandler) APIUserBatchDeleteURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req model.ShortenBatchDeleteRequest
@@ -172,6 +183,7 @@ func (app *ShortenerHandler) APIUserBatchDeleteURL(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// APIShortenBatchURL обрабатывает HTTP-запрос на сокращение URL-адресов в пакетном режиме.
 func (app *ShortenerHandler) APIShortenBatchURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req model.ShortenBatchRequest
@@ -221,6 +233,7 @@ func (app *ShortenerHandler) APIShortenBatchURL(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(resp)
 }
 
+// APIShortenURL обрабатывает HTTP-запрос на сокращение URL-адреса.
 func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var req model.ShortenRequest
@@ -269,6 +282,7 @@ func (app *ShortenerHandler) APIShortenURL(w http.ResponseWriter, r *http.Reques
 
 }
 
+// validateURL проверяет корректность URL-адреса.
 func validateURL(originalURL string) error {
 	if _, err := url.ParseRequestURI(originalURL); err != nil {
 		return err

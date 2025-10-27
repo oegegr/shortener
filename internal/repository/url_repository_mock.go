@@ -12,7 +12,7 @@ type MockURLRepository struct {
 }
 
 func (m *MockURLRepository) Ping(ctx context.Context) error {
-	args := m.Called()
+	args := m.Called(ctx)
 	return args.Error(0)
 }
 
