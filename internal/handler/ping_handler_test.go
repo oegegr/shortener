@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func PingHandler_Ping() {
+func ExamplePingHandler() {
 	// Создание фейкового репозитория
 	repo := new(repository.MockURLRepository)
 
