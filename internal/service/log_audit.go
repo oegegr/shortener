@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/oegegr/shortener/internal/model"
-	"github.com/stretchr/testify/mock"
 )
 
 // LogAuditManager представляет интерфейс для менеджера аудита логов.
@@ -41,14 +40,6 @@ func (m *DefaultLogAuditManager) NotifyAllAuditors(ctx context.Context, logItem 
 		auditor.SaveLogItem(ctx, logItem)
 	}
 }
-
-// MockLogAuditManager представляет мок-реализацию менеджера аудита логов для тестирования.
-type MockLogAuditManager struct {
-	mock.Mock
-}
-
-// NotifyAllAuditors уведомляет всех аудиторов о новом лог-элементе (мок-реализация).
-func (m *MockLogAuditManager) NotifyAllAuditors(ctx context.Context, logItem model.LogAuditItem) {}
 
 // LogAuditor представляет интерфейс для аудитора логов.
 type LogAuditor interface {

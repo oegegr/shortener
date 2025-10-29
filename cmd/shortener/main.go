@@ -35,7 +35,7 @@ func createURLDeletionStrategy(
 ) *service.QueueDeletionStrategy {
 	workerNum := 5
 	taskNum := 1000
-	waitTimeout, _ := time.ParseDuration("PT1S")
+	waitTimeout := 1 * time.Second
 	return service.NewQueueURLDeletionStrategy(repo, logger, workerNum, taskNum, waitTimeout)
 }
 
