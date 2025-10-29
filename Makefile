@@ -20,6 +20,7 @@ run-with-db: build-shortener run-postgresql
 	        BASE_URL=http://127.0.0.1:8080 \
 		SERVER_ADDRESS=127.0.0.1:8080 \
 		DATABASE_DSN=postgres://admin:admin@172.28.1.1:5432/url?sslmode=disable \
+		AUDIT_FILE=/tmp/foobar \
 		bin/shortener
 
 .PHONY: run-with-dbfile 

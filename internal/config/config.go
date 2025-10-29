@@ -1,3 +1,4 @@
+// Package config содержит реализацию конфигурации приложения.
 package config
 
 import (
@@ -5,16 +6,30 @@ import (
 	"os"
 )
 
+// Config представляет структуру конфигурации приложения.
 type Config struct {
-	ServerAddress      string
-	BaseURL            string
-	ShortURLLength     int
-	FileStoragePath    string
+	// ServerAddress представляет адрес сервера.
+	ServerAddress string
+	// BaseURL представляет базовый URL-адрес для сокращенных URL-адресов.
+	BaseURL string
+	// ShortURLLength представляет длину сокращенного URL-адреса.
+	ShortURLLength int
+	// FileStoragePath представляет путь к файлу для хранения данных.
+	FileStoragePath string
+	// DBConnectionString представляет строку подключения к базе данных.
 	DBConnectionString string
-	LogLevel           string
-	JWTSecret          string
+	// LogLevel представляет уровень логирования.
+	LogLevel string
+	// JWTSecret представляет секретный ключ для JWT-токенов.
+	JWTSecret string
+	// AuditFile представляет файл для хранения аудит-логов.
+	AuditFile string
+	// AuditURL представляет URL-адрес для отправки аудит-логов.
+	AuditURL string
 }
 
+// NewConfig возвращает новый экземпляр конфигурации приложения.
+// Эта функция парсит флаги командной строки и переменные окружения для инициализации конфигурации.
 func NewConfig() Config {
 	cfg := Config{}
 
@@ -24,6 +39,8 @@ func NewConfig() Config {
 	flag.StringVar(&cfg.DBConnectionString, "d", "", "database connection string")
 	flag.StringVar(&cfg.LogLevel, "l", "DEBUG", "log level")
 	flag.StringVar(&cfg.JWTSecret, "s", "jwt-secret-key", "jwt secret key")
+	flag.StringVar(&cfg.AuditFile, "audit-file", "", "file to keep audit logs")
+	flag.StringVar(&cfg.AuditURL, "audit-url", "", "URL to pass audit logs")
 	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
 	flag.Parse()
 
@@ -48,7 +65,15 @@ func NewConfig() Config {
 	}
 
 	if jwtSecret, ok := os.LookupEnv("JWT_SECRET"); ok {
-		cfg.JWTSecret = jwtSecret 
+		cfg.JWTSecret = jwtSecret
+	}
+
+	if auditFile, ok := os.LookupEnv("AUDIT_FILE"); ok {
+		cfg.AuditFile = auditFile
+	}
+
+	if auditURL, ok := os.LookupEnv("AUDIT_URL"); ok {
+		cfg.AuditURL = auditURL
 	}
 
 	return cfg

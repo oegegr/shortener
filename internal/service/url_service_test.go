@@ -133,7 +133,7 @@ func TestShortenURLService_GetOriginalURL_Success(t *testing.T) {
 	expectedURL := "https://original.com/long/url"
 	urlItem := &model.URLItem{ShortID: shortCode, URL: expectedURL}
 
-	repoMock.On("FindURLByID", shortCode).Return(urlItem, nil).Once()
+	repoMock.On("FindURLByID", ctx, shortCode).Return(urlItem, nil).Once()
 
 	originalURL, err := svc.GetOriginalURL(ctx, shortCode)
 
@@ -152,7 +152,7 @@ func TestShortenURLService_GetOriginalURL_NotFound(t *testing.T) {
 
 	shortCode := "invalid123"
 
-	repoMock.On("FindURLByID", shortCode).Return(&model.URLItem{}, repository.ErrRepoNotFound).Once()
+	repoMock.On("FindURLByID", ctx, shortCode).Return(&model.URLItem{}, repository.ErrRepoNotFound).Once()
 
 	originalURL, err := svc.GetOriginalURL(ctx, shortCode)
 
@@ -173,7 +173,7 @@ func TestShortenURLService_GetOriginalURL_RepositoryError(t *testing.T) {
 	shortCode := "abc123"
 	testError := errors.New("database error")
 
-	repoMock.On("FindURLByID", shortCode).Return(&model.URLItem{}, testError)
+	repoMock.On("FindURLByID", ctx, shortCode).Return(&model.URLItem{}, testError)
 
 	originalURL, err := svc.GetOriginalURL(ctx, shortCode)
 

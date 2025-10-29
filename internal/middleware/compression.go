@@ -1,3 +1,4 @@
+// Package middleware содержит middleware-функции для сжатия HTTP-ответов.
 package middleware
 
 import (
@@ -7,6 +8,8 @@ import (
 	"strings"
 )
 
+// GzipMiddleware возвращает middleware-функцию для сжатия HTTP-ответов с помощью gzip.
+// Эта функция принимает список типов контента, которые должны быть сжаты.
 func GzipMiddleware(compressedTypes []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		gzipFunc := func(w http.ResponseWriter, r *http.Request) {
@@ -38,14 +41,22 @@ func GzipMiddleware(compressedTypes []string) func(http.Handler) http.Handler {
 	}
 }
 
+// compressWriter представляет writer, который сжимает данные с помощью gzip.
 type compressWriter struct {
-	responseWriter  http.ResponseWriter
-	zipWriter       *gzip.Writer
+	// responseWriter представляет оригинальный writer.
+	responseWriter http.ResponseWriter
+	// zipWriter представляет writer, который сжимает данные с помощью gzip.
+	zipWriter *gzip.Writer
+	// compressedTypes представляет список типов контента, которые должны быть сжаты.
 	compressedTypes []string
-	wroteHeader     bool
-	shouldCompress  bool 
+	// wroteHeader представляет флаг, который указывает, был ли отправлен заголовок ответа.
+	wroteHeader bool
+	// shouldCompress представляет флаг, который указывает, следует ли сжимать данные.
+	shouldCompress bool
 }
 
+// newCompressWriter возвращает новый экземпляр compressWriter.
+// Эта функция принимает оригинальный writer и список типов контента, которые должны быть сжаты.
 func newCompressWriter(w http.ResponseWriter, ct []string) *compressWriter {
 	return &compressWriter{
 		responseWriter:  w,
@@ -53,10 +64,13 @@ func newCompressWriter(w http.ResponseWriter, ct []string) *compressWriter {
 	}
 }
 
+// Header возвращает заголовки ответа.
 func (c *compressWriter) Header() http.Header {
 	return c.responseWriter.Header()
 }
 
+// Write записывает данные в ответ.
+// Если сжатие включено, данные будут сжаты с помощью gzip.
 func (c *compressWriter) Write(p []byte) (int, error) {
 	if !c.wroteHeader {
 		c.WriteHeader(http.StatusOK)
@@ -71,6 +85,8 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 	return c.responseWriter.Write(p)
 }
 
+// WriteHeader отправляет заголовок ответа.
+// Если сжатие включено, в заголовке будет указано, что содержимое сжато с помощью gzip.
 func (c *compressWriter) WriteHeader(statusCode int) {
 	if c.wroteHeader {
 		return
@@ -87,6 +103,7 @@ func (c *compressWriter) WriteHeader(statusCode int) {
 	c.responseWriter.WriteHeader(statusCode)
 }
 
+// Close закрывает writer и освобождает ресурсы.
 func (c *compressWriter) Close() error {
 	if c.zipWriter != nil {
 		return c.zipWriter.Close()
@@ -94,6 +111,7 @@ func (c *compressWriter) Close() error {
 	return nil
 }
 
+// needCompression проверяет, следует ли сжимать данные на основе типа контента.
 func (c *compressWriter) needCompression() bool {
 	contentType := c.responseWriter.Header().Get("Content-Type")
 	for _, t := range c.compressedTypes {
@@ -104,11 +122,16 @@ func (c *compressWriter) needCompression() bool {
 	return false
 }
 
+// compressReader представляет reader, который распаковывает сжатые данные с помощью gzip.
 type compressReader struct {
-	r  io.ReadCloser
+	// r представляет оригинальный reader.
+	r io.ReadCloser
+	// zr представляет reader, который распаковывает сжатые данные с помощью gzip.
 	zr *gzip.Reader
 }
 
+// newCompressReader возвращает новый экземпляр compressReader.
+// Эта функция принимает оригинальный reader и возвращает reader, который распаковывает сжатые данные.
 func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
@@ -121,10 +144,13 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	}, nil
 }
 
+// Read читает данные из запроса.
+// Если данные сжаты, они будут распакованы с помощью gzip.
 func (c compressReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
+// Close закрывает reader и освобождает ресурсы.
 func (c *compressReader) Close() error {
 	if err := c.r.Close(); err != nil {
 		return err

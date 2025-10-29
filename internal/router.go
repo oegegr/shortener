@@ -1,25 +1,28 @@
+// Package internal содержит реализацию роутера для приложения.
 package internal
 
 import (
 	"github.com/go-chi/chi/v5"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/oegegr/shortener/internal/handler"
 	"github.com/oegegr/shortener/internal/middleware"
-	"github.com/oegegr/shortener/internal/service"
 	"github.com/oegegr/shortener/internal/repository"
+	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
+// NewShortenerRouter возвращает новый экземпляр роутера для приложения.
+// Эта функция принимает логгер, сервис сокращения URL-адресов, парсер JWT-токенов, репозиторий URL-адресов и менеджер аудита логов.
 func NewShortenerRouter(
 	logger zap.SugaredLogger,
 	service service.URLShortener,
 	jwtParser service.JWTParser,
-	repo repository.URLRepository, 
+	repo repository.URLRepository,
+	logAudit service.LogAuditManager,
 ) *chi.Mux {
-
-	shortenerHandler := handler.NewShortenerHandler(service, &middleware.AuthContextUserIDPovider{})
+	shortenerHandler := handler.NewShortenerHandler(service, &middleware.AuthContextUserIDPovider{}, logAudit)
 	pingHandler := handler.NewPingHandler(repo)
 
 	router := chi.NewRouter()
