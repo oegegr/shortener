@@ -1,4 +1,4 @@
-package reset 
+package reset
 
 import (
 	"go/parser"

@@ -124,7 +124,7 @@ func TestPoolConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			obj := pool.Get()
 			if obj == nil {
 				obj = &TestResetableStruct{}
