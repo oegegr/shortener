@@ -12,8 +12,7 @@ func main() {
 func badHelper() {
 	os.Exit(1) // want `log\.Fatal or os\.Exit called outside main function of main package`
 
-	
-	panic("helper panic") // want `usage of panic\(\) found` 
+	panic("helper panic") // want `usage of panic\(\) found`
 }
 
 func anotherHelper() {

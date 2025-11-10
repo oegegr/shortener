@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/oegegr/shortener/pkg/reset/generator"
+	reset "github.com/oegegr/shortener/pkg/reset/generator"
 )
 
 func main() {

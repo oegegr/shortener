@@ -186,12 +186,12 @@ func TestGetZeroValue(t *testing.T) {
 
 func TestResetGenerator_Integration(t *testing.T) {
 	testDir := t.TempDir()
-    pkgDir := filepath.Join(testDir, "testpkg")
+	pkgDir := filepath.Join(testDir, "testpkg")
 
-    err := os.MkdirAll(pkgDir, 0755)
-    if err != nil {
-        t.Fatalf("Failed to create test directory: %v", err)
-    }
+	err := os.MkdirAll(pkgDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create test directory: %v", err)
+	}
 	// Создаем тестовые данные
 	pkgInfo := packageInfo{
 		name: "testpkg",
