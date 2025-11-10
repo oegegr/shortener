@@ -2,14 +2,16 @@
 package reset
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestGenerateResetMethod(t *testing.T) {
-	structInfo := &structInfo{
+	structInfo := structInfo{
 		name: "TestStruct",
-		fields: []*fieldInfo{
+		fields: []fieldInfo{
 			{name: "ID", typeExpr: "int", isPtr: false, isSlice: false, isMap: false, isStruct: false},
 			{name: "Name", typeExpr: "string", isPtr: false, isSlice: false, isMap: false, isStruct: false},
 			{name: "Tags", typeExpr: "[]string", isPtr: false, isSlice: true, isMap: false, isStruct: false},
@@ -61,12 +63,12 @@ func TestGenerateResetMethod(t *testing.T) {
 func TestGenerateFieldReset(t *testing.T) {
 	tests := []struct {
 		name     string
-		field    *fieldInfo
+		field    fieldInfo
 		expected string
 	}{
 		{
 			name: "primitive int",
-			field: &fieldInfo{
+			field: fieldInfo{
 				name:     "Count",
 				typeExpr: "int",
 				isPtr:    false,
@@ -78,7 +80,7 @@ func TestGenerateFieldReset(t *testing.T) {
 		},
 		{
 			name: "string",
-			field: &fieldInfo{
+			field: fieldInfo{
 				name:     "Name",
 				typeExpr: "string",
 				isPtr:    false,
@@ -90,7 +92,7 @@ func TestGenerateFieldReset(t *testing.T) {
 		},
 		{
 			name: "slice",
-			field: &fieldInfo{
+			field: fieldInfo{
 				name:     "Items",
 				typeExpr: "[]string",
 				isPtr:    false,
@@ -102,7 +104,7 @@ func TestGenerateFieldReset(t *testing.T) {
 		},
 		{
 			name: "map",
-			field: &fieldInfo{
+			field: fieldInfo{
 				name:     "Data",
 				typeExpr: "map[int]string",
 				isPtr:    false,
@@ -114,7 +116,7 @@ func TestGenerateFieldReset(t *testing.T) {
 		},
 		{
 			name: "pointer to primitive",
-			field: &fieldInfo{
+			field: fieldInfo{
 				name:     "CountPtr",
 				typeExpr: "*int",
 				isPtr:    true,
@@ -126,7 +128,7 @@ func TestGenerateFieldReset(t *testing.T) {
 		},
 		{
 			name: "pointer to struct",
-			field: &fieldInfo{
+			field: fieldInfo{
 				name:     "Child",
 				typeExpr: "*MyStruct",
 				isPtr:    true,
@@ -138,7 +140,7 @@ func TestGenerateFieldReset(t *testing.T) {
 		},
 		{
 			name: "embedded struct",
-			field: &fieldInfo{
+			field: fieldInfo{
 				name:     "Embedded",
 				typeExpr: "MyStruct",
 				isPtr:    false,
@@ -183,14 +185,21 @@ func TestGetZeroValue(t *testing.T) {
 }
 
 func TestResetGenerator_Integration(t *testing.T) {
+	testDir := t.TempDir()
+    pkgDir := filepath.Join(testDir, "testpkg")
+
+    err := os.MkdirAll(pkgDir, 0755)
+    if err != nil {
+        t.Fatalf("Failed to create test directory: %v", err)
+    }
 	// Создаем тестовые данные
-	pkgInfo := &packageInfo{
+	pkgInfo := packageInfo{
 		name: "testpkg",
-		path: "/tmp/testpkg",
-		structs: []*structInfo{
+		path: pkgDir,
+		structs: []structInfo{
 			{
 				name: "SimpleStruct",
-				fields: []*fieldInfo{
+				fields: []fieldInfo{
 					{name: "Value", typeExpr: "int"},
 					{name: "Text", typeExpr: "string"},
 				},
@@ -198,11 +207,11 @@ func TestResetGenerator_Integration(t *testing.T) {
 		},
 	}
 
-	generator := NewResetGenerator([]*packageInfo{pkgInfo})
+	generator := NewResetGenerator([]packageInfo{pkgInfo})
 
 	// Этот тест в основном проверяет, что нет паники и ошибок
 	// Реальная генерация файлов тестируется в отдельных тестах
-	err := generator.GenerateReset()
+	err = generator.GenerateReset()
 	if err != nil {
 		t.Errorf("GenerateReset() failed: %v", err)
 	}

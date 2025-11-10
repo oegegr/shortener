@@ -19,11 +19,11 @@ func NewStructFinder(rootDir string) *StructFinder {
 	return &StructFinder{rootDir: rootDir}
 }
 
-func (f *StructFinder) Find() ([]*packageInfo, error) {
+func (f *StructFinder) Find() ([]packageInfo, error) {
 
 	// Собираем информацию о всех пакетах
-	mapPackages := make(map[string]*packageInfo)
-	packages := make([]*packageInfo, 0)
+	mapPackages := make(map[string]packageInfo)
+	packages := make([]packageInfo, 0)
 
 	err := filepath.WalkDir(f.rootDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -48,10 +48,10 @@ func (f *StructFinder) Find() ([]*packageInfo, error) {
 		}
 
 		for pkgName, pkg := range pkgs {
-			info := &packageInfo{
+			info := packageInfo{
 				name:    pkgName,
 				path:    path,
-				structs: make([]*structInfo, 0),
+				structs: make([]structInfo, 0),
 				imports: make(map[string]string),
 				files:   make(map[string]*ast.File),
 			}
@@ -59,7 +59,7 @@ func (f *StructFinder) Find() ([]*packageInfo, error) {
 			// Анализируем каждый файл в пакете
 			for filename, file := range pkg.Files {
 				info.files[filename] = file
-				analyzeFile(file, info)
+				analyzeFile(file, &info)
 			}
 
 			if len(info.structs) > 0 {
@@ -77,9 +77,6 @@ func (f *StructFinder) Find() ([]*packageInfo, error) {
 	// Генерируем файлы reset.gen.go для каждого пакета со структурами
 	for _, pkgInfo := range mapPackages {
 		packages = append(packages, pkgInfo)
-		// if err := generateResetFile(pkgInfo); err != nil {
-		// 	return packages, fmt.Errorf("generating reset file for %s: %w", pkgInfo.path, err)
-		// }
 	}
 
 	return packages, nil
@@ -138,9 +135,9 @@ func analyzeFile(file *ast.File, pkgInfo *packageInfo) {
 				continue
 			}
 
-			structInfo := &structInfo{
+			structInfo := structInfo{
 				name:   typeSpec.Name.Name,
-				fields: make([]*fieldInfo, 0),
+				fields: make([]fieldInfo, 0),
 			}
 
 			// Анализируем поля структуры
@@ -166,8 +163,8 @@ func analyzeFile(file *ast.File, pkgInfo *packageInfo) {
 	})
 }
 
-func analyzeFieldType(expr ast.Expr) *fieldInfo {
-	info := &fieldInfo{}
+func analyzeFieldType(expr ast.Expr) fieldInfo {
+	info := fieldInfo{}
 
 	switch t := expr.(type) {
 	case *ast.Ident:
