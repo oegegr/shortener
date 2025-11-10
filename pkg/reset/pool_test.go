@@ -53,10 +53,10 @@ func TestPoolPutResetsObject(t *testing.T) {
 	if obj.Name != "" {
 		t.Errorf("After Put: Expected Name to be empty, got %s", obj.Name)
 	}
-	if obj.Data != nil && len(obj.Data) != 0 {
+	if len(obj.Data) != 0 {
 		t.Errorf("After Put: Expected Data to be empty, got %v", obj.Data)
 	}
-	if obj.Items != nil && len(obj.Items) != 0 {
+	if len(obj.Items) != 0 {
 		t.Errorf("After Put: Expected Items to be empty, got %v", obj.Items)
 	}
 }

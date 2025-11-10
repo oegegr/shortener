@@ -11,10 +11,10 @@ import (
 )
 
 type ResetGenerator struct {
-	packageInfo []*packageInfo
+	packageInfo []packageInfo
 }
 
-func NewResetGenerator(infos []*packageInfo) ResetGenerator {
+func NewResetGenerator(infos []packageInfo) ResetGenerator {
 	return ResetGenerator{packageInfo: infos}
 }
 
@@ -28,7 +28,7 @@ func (r ResetGenerator) GenerateReset() error {
 	return nil
 }
 
-func generateResetFile(pkgInfo *packageInfo) error {
+func generateResetFile(pkgInfo packageInfo) error {
 	var buf bytes.Buffer
 
 	// Заголовок файла
@@ -57,7 +57,7 @@ func generateResetFile(pkgInfo *packageInfo) error {
 	return nil
 }
 
-func generateResetMethod(structInfo *structInfo) string {
+func generateResetMethod(structInfo structInfo) string {
 	var buf bytes.Buffer
 
 	receiverName := strings.ToLower(string(structInfo.name[0]))
@@ -76,7 +76,7 @@ func generateResetMethod(structInfo *structInfo) string {
 	return buf.String()
 }
 
-func generateFieldReset(receiverName string, field *fieldInfo) string {
+func generateFieldReset(receiverName string, field fieldInfo) string {
 	var buf bytes.Buffer
 
 	fieldAccess := receiverName + "." + field.name
