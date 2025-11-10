@@ -15,6 +15,7 @@ type Pool[T Resetable] struct {
 	pool *sync.Pool
 }
 
+// Создает экземпляр Pool
 func New[T Resetable]() *Pool[T] {
 	return &Pool[T]{
 		pool: &sync.Pool{
