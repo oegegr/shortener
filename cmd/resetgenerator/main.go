@@ -8,6 +8,7 @@ import (
 	reset "github.com/oegegr/shortener/pkg/reset/generator"
 )
 
+// main является точкой входа в программу генерации reset методов
 func main() {
 
 	var dir string

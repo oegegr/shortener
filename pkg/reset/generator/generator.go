@@ -10,14 +10,17 @@ import (
 	"strings"
 )
 
+// ResetGenerator генерирует методы Reset для структур с тегом generate:reset
 type ResetGenerator struct {
 	packageInfo []packageInfo
 }
 
+// NewResetGenerator создает новый генератор reset методов
 func NewResetGenerator(infos []packageInfo) ResetGenerator {
 	return ResetGenerator{packageInfo: infos}
 }
 
+// GenerateReset генерирует файлы reset.gen.go для всех найденных пакетов
 func (r ResetGenerator) GenerateReset() error {
 	for _, pkg := range r.packageInfo {
 		err := generateResetFile(pkg)
@@ -28,6 +31,7 @@ func (r ResetGenerator) GenerateReset() error {
 	return nil
 }
 
+// generateResetFile генерирует файл reset.gen.go для одного пакета
 func generateResetFile(pkgInfo packageInfo) error {
 	var buf bytes.Buffer
 
@@ -57,6 +61,7 @@ func generateResetFile(pkgInfo packageInfo) error {
 	return nil
 }
 
+// generateResetMethod генерирует метод Reset для одной структуры
 func generateResetMethod(structInfo structInfo) string {
 	var buf bytes.Buffer
 
@@ -76,6 +81,7 @@ func generateResetMethod(structInfo structInfo) string {
 	return buf.String()
 }
 
+// generateFieldReset генерирует код сброса для одного поля структуры
 func generateFieldReset(receiverName string, field fieldInfo) string {
 	var buf bytes.Buffer
 
@@ -122,6 +128,7 @@ func generateFieldReset(receiverName string, field fieldInfo) string {
 	return buf.String()
 }
 
+// getZeroValue возвращает строковое представление нулевого значения для типа
 func getZeroValue(typeExpr string) string {
 	switch typeExpr {
 	case "string":

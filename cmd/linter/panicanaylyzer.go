@@ -10,6 +10,7 @@ import (
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 
+// PanicAnalyzer - анализатор для обнаружения использования panic, log.Fatal и os.Exit вне функции main
 var PanicAnalyzer = &analysis.Analyzer{
 	Name:     "golinter",
 	Doc:      "Reports usage of panic, log.Fatal and os.Exit outside main function",
@@ -17,10 +18,12 @@ var PanicAnalyzer = &analysis.Analyzer{
 	Run:      check,
 }
 
+// main запускает анализатор как standalone инструмент
 func main() {
 	singlechecker.Main(PanicAnalyzer)
 }
 
+// check - основная функция проверки, которая анализирует AST дерево
 func check(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
 		// Пропускаем тестовые файлы

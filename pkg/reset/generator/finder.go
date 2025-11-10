@@ -11,14 +11,17 @@ import (
 	"unicode"
 )
 
+// StructFinder находит структуры с комментарием // generate:reset в дереве директорий
 type StructFinder struct {
 	rootDir string
 }
 
+// NewStructFinder создает новый экземпляр StructFinder
 func NewStructFinder(rootDir string) *StructFinder {
 	return &StructFinder{rootDir: rootDir}
 }
 
+// Find рекурсивно ищет структуры с тегом generate:reset во всех поддиректориях
 func (f *StructFinder) Find() ([]packageInfo, error) {
 
 	// Собираем информацию о всех пакетах
@@ -82,6 +85,7 @@ func (f *StructFinder) Find() ([]packageInfo, error) {
 	return packages, nil
 }
 
+// analyzeFile анализирует AST файла и извлекает информацию о структурах с тегом generate:reset
 func analyzeFile(file *ast.File, pkgInfo *packageInfo) {
 	// Собираем импорты
 	for _, imp := range file.Imports {
@@ -163,6 +167,7 @@ func analyzeFile(file *ast.File, pkgInfo *packageInfo) {
 	})
 }
 
+// analyzeFieldType анализирует тип поля и возвращает информацию о нем
 func analyzeFieldType(expr ast.Expr) fieldInfo {
 	info := fieldInfo{}
 
@@ -200,6 +205,7 @@ func analyzeFieldType(expr ast.Expr) fieldInfo {
 	return info
 }
 
+// isBuiltinStructType проверяет, является ли тип встроенным (примитивным)
 func isBuiltinStructType(typeName string) bool {
 	builtinTypes := map[string]bool{
 		"int": true, "int8": true, "int16": true, "int32": true, "int64": true,
