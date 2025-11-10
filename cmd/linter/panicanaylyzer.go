@@ -1,4 +1,4 @@
-package linter 
+package linter
 
 import (
 	"go/ast"
@@ -72,8 +72,8 @@ func isForbiddenExitCall(call *ast.CallExpr) bool {
 		if ident, ok := fun.X.(*ast.Ident); ok {
 			if ident.Name == "os" && fun.Sel.Name == "Exit" {
 				return true
+			}
 		}
-}
 
 		// Проверяем log.Fatal
 		if ident, ok := fun.X.(*ast.Ident); ok {
