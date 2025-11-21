@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	pkghttp "github.com/oegegr/shortener/pkg/http"
 	"github.com/oegegr/shortener/internal/config"
 	"go.uber.org/zap"
 )
@@ -13,7 +14,7 @@ import (
 // ShortenerApp - основное приложение для сокращения URL
 type ShortenerApp struct {
 	cfg     *config.Config
-	server  *http.Server
+	server  pkghttp.Server
 	dbConn  *sql.DB
 	logger  *zap.SugaredLogger
 	stopApp func(ctx context.Context)
@@ -22,7 +23,7 @@ type ShortenerApp struct {
 // Конструктор для ShortenerApp
 func NewShortenerApp(
 	cfg *config.Config,
-	server *http.Server,
+	server pkghttp.Server,
 	dbConn *sql.DB,
 	logger *zap.SugaredLogger,
 	stopApp func(ctx context.Context),
@@ -38,7 +39,7 @@ func (app *ShortenerApp) Start(ctx context.Context) error {
 	serverErr := make(chan error, 1)
 	go func() {
 		app.logger.Info("Server starting")
-		if err := app.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := app.server.Start(ctx); err != nil && err != http.ErrServerClosed {
 			serverErr <- err
 		}
 	}()
@@ -50,7 +51,7 @@ func (app *ShortenerApp) Start(ctx context.Context) error {
 		// Graceful shutdown
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		app.server.Shutdown(shutdownCtx)
+		app.server.Stop(shutdownCtx)
 		app.stopApp(ctx)
 		return nil
 	}

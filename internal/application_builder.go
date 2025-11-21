@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	pkghttp "github.com/oegegr/shortener/pkg/http"
 	"github.com/oegegr/shortener/internal/config"
 	"github.com/oegegr/shortener/internal/config/db"
 	sugar "github.com/oegegr/shortener/internal/config/logger"
@@ -56,12 +57,10 @@ func (builder *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, er
 
 	router := NewShortenerRouter(*logger, service, jwtParser, repo, logAudit)
 
-	server := &http.Server{
-		Addr:         builder.cfg.ServerAddress,
-		Handler:      router,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  60 * time.Second,
+	server, err := createServer(router, *builder.cfg)
+	if err != nil {
+		logger.Error("failed to create server: %w", err)
+		return nil, err
 	}
 
 	stopApp := func(ctx context.Context) {
@@ -71,6 +70,20 @@ func (builder *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, er
 	}
 
 	return NewShortenerApp(builder.cfg, server, dbConn, logger, stopApp), nil
+}
+
+func createServer(handler http.Handler, cfg config.Config) (pkghttp.Server, error) {
+	serverBuilder := pkghttp.NewServerBuilder(cfg.ServerAddress)
+
+	if cfg.EnableHTTPS {
+		serverBuilder.WithHTTPS(cfg.TLSCertFile, cfg.TLSKeyFile)
+	}
+
+	server, err := serverBuilder.Build(handler)
+	if err != nil {
+		return nil, err
+	}
+	return server, nil
 }
 
 // createURLRepository - создает репозиторий URL (БД или in-memory)
