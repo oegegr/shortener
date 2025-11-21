@@ -26,6 +26,12 @@ type Config struct {
 	AuditFile string
 	// AuditURL представляет URL-адрес для отправки аудит-логов.
 	AuditURL string
+    // Включения HTTPS
+	EnableHTTPS       bool    
+    // Путь TLS к сертификату
+	TLSCertFile       string 
+    // Путь TLS к ключу
+	TLSKeyFile        string 
 }
 
 // NewConfig возвращает новый экземпляр конфигурации приложения.
@@ -38,10 +44,13 @@ func NewConfig() Config {
 	flag.StringVar(&cfg.FileStoragePath, "f", "", "file path to save storage")
 	flag.StringVar(&cfg.DBConnectionString, "d", "", "database connection string")
 	flag.StringVar(&cfg.LogLevel, "l", "DEBUG", "log level")
-	flag.StringVar(&cfg.JWTSecret, "s", "jwt-secret-key", "jwt secret key")
+	flag.StringVar(&cfg.JWTSecret, "jwtkey", "jwt-secret-key", "jwt secret key")
 	flag.StringVar(&cfg.AuditFile, "audit-file", "", "file to keep audit logs")
 	flag.StringVar(&cfg.AuditURL, "audit-url", "", "URL to pass audit logs")
 	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
+    flag.BoolVar(&cfg.EnableHTTPS, "s", false, "Enable HTTPS") 
+	flag.StringVar(&cfg.TLSCertFile, "tlscert", "cert.pem", "TLS certificate file")
+	flag.StringVar(&cfg.TLSKeyFile, "tlskey", "key.pem", "TLS private key file")
 	flag.Parse()
 
 	if envServerAddress, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
@@ -74,6 +83,16 @@ func NewConfig() Config {
 
 	if auditURL, ok := os.LookupEnv("AUDIT_URL"); ok {
 		cfg.AuditURL = auditURL
+	}
+
+	if envEnableHTTPS := os.Getenv("ENABLE_HTTPS"); envEnableHTTPS == "true" {
+		cfg.EnableHTTPS = true
+	}
+	if envCertFile := os.Getenv("TLS_CERT_FILE"); envCertFile != "" {
+		cfg.TLSCertFile = envCertFile
+	}
+	if envKeyFile := os.Getenv("TLS_KEY_FILE"); envKeyFile != "" {
+		cfg.TLSKeyFile = envKeyFile
 	}
 
 	return cfg
