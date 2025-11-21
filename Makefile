@@ -13,7 +13,7 @@ build-shortener:
 	        rm -rf bin 
 		mkdir -p bin
 		chmod +x -R bin
-		go build -o bin ./...
+		go build -ldflags "-X main.buildVersion=v1.0.0 -X main.buildDate=$$(date +'%Y-%m-%d_%H:%M:%S') -X main.buildCommit=$$(git rev-parse HEAD)" -o bin ./...
 
 .PHONY: run-with-db
 run-with-db: build-shortener run-postgresql  
