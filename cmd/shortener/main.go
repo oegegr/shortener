@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,7 +26,7 @@ func main() {
 
 	cfg, err := config.NewConfig()
 	if err != nil {
-		log.Fatalf("Failed to load app config: %v", err)
+		fmt.Printf("Failed to load app config: %v", err)
 		os.Exit(1)
 	}
 	printAppConfig(cfg)
@@ -36,7 +35,7 @@ func main() {
 
 	app, err := internal.NewShortenerAppBuilder(cfg).Build(appCtx)
 	if err != nil {
-		log.Fatalf("Failed to create server: %v", err)
+		fmt.Printf("Failed to create server: %v", err)
 		os.Exit(1)
 	}
 
@@ -44,16 +43,20 @@ func main() {
 	defer stop()
 
 	if err := app.Start(ctx); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		fmt.Printf("Server failed to start: %v", err)
 		os.Exit(1)
 	}
+
+	fmt.Println("Application stopped gracefully")
+	os.Exit(0)
 }
 
 // Функция для вывода информации о конфигурации приложения
 func printAppConfig(cfg *config.Config) {
 	jsonConfig, err := json.MarshalIndent(cfg, "", " ")
 	if err != nil {
-		log.Fatalf("Failed to print app config: %v", err)
+		fmt.Printf("Failed to print app config: %v", err)
+		return
 	}
 	fmt.Printf("Application Config: %s", jsonConfig)
 }

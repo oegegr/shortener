@@ -3,6 +3,8 @@ package internal
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -63,12 +65,42 @@ func (builder *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, er
 		return nil, err
 	}
 
-	stopApp := func(ctx context.Context) {
-		logger.Sync()
+	stopApp := func(stopCtx context.Context) error {
+		var stopErrors []error
+
+		logger.Info("Starting application cleanup...")
+
 		if dbConn != nil {
-			dbConn.Close()
+			logger.Info("Closing database connection...")
+			if err := dbConn.Close(); err != nil {
+				stopErrors = append(stopErrors, fmt.Errorf("failed to close database: %w", err))
+			}
 		}
+
+		logger.Info("Stoping urlDelStrategy...")
 		urlDelStrategy.Stop()
+
+		if server != nil {
+			logger.Info("Shutting down HTTP server...")
+			shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer cancel()
+
+			if err := server.Stop(shutdownCtx); err != nil {
+				stopErrors = append(stopErrors, fmt.Errorf("HTTP server shutdown failed: %w", err))
+			}
+		}
+
+		logger.Info("Syncing logger...")
+		if err := logger.Sync(); err != nil {
+			logger.Debugf("Logger sync warning: %v", err)
+		}
+
+		if len(stopErrors) == 0 {
+			return nil
+		}
+
+		// Объединяем ошибки
+		return errors.Join(stopErrors...)
 	}
 
 	return NewShortenerApp(builder.cfg, server, dbConn, logger, stopApp), nil
