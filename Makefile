@@ -17,7 +17,8 @@ build-shortener:
 
 .PHONY: run-with-db
 run-with-db: build-shortener run-postgresql cert-clean cert
-			TLS_CERT_FILE=cert.pem \
+		CONFIG=config.json \
+		TLS_CERT_FILE=cert.pem \
 		TLS_KEY_FILE=key.pem \
 		ENABLE_HTTPS=true \
 	    BASE_URL=https://127.0.0.1:8080 \

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	pkghttp "github.com/oegegr/shortener/pkg/http"
 	"github.com/oegegr/shortener/internal/config"
+	pkghttp "github.com/oegegr/shortener/pkg/http"
 	"go.uber.org/zap"
 )
 

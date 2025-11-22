@@ -1,99 +1,79 @@
 // Package config содержит реализацию конфигурации приложения.
 package config
 
-import (
-	"flag"
-	"os"
-)
-
 // Config представляет структуру конфигурации приложения.
 type Config struct {
 	// ServerAddress представляет адрес сервера.
-	ServerAddress string
+	ServerAddress string `json:"server_address,omitempty"`
 	// BaseURL представляет базовый URL-адрес для сокращенных URL-адресов.
-	BaseURL string
+	BaseURL string `json:"base_url,omitempty"`
 	// ShortURLLength представляет длину сокращенного URL-адреса.
-	ShortURLLength int
+	ShortURLLength int `json:"short_url_length,omitempty"`
 	// FileStoragePath представляет путь к файлу для хранения данных.
-	FileStoragePath string
+	FileStoragePath string `json:"file_storage_path,omitempty"`
 	// DBConnectionString представляет строку подключения к базе данных.
-	DBConnectionString string
+	DBConnectionString string `json:"db_connection_string,omitempty"`
 	// LogLevel представляет уровень логирования.
-	LogLevel string
+	LogLevel string `json:"log_level,omitempty"`
 	// JWTSecret представляет секретный ключ для JWT-токенов.
-	JWTSecret string
+	JWTSecret string `json:"jwt_secret,omitempty"`
 	// AuditFile представляет файл для хранения аудит-логов.
-	AuditFile string
+	AuditFile string `json:"audit_file,omitempty"`
 	// AuditURL представляет URL-адрес для отправки аудит-логов.
-	AuditURL string
-    // Включения HTTPS
-	EnableHTTPS       bool    
-    // Путь TLS к сертификату
-	TLSCertFile       string 
-    // Путь TLS к ключу
-	TLSKeyFile        string 
+	AuditURL string `json:"audit_url,omitempty"`
+	// Включения HTTPS
+	EnableHTTPS bool `json:"enable_https,omitempty"`
+	// Путь TLS к сертификату
+	TLSCertFile string `json:"tls_cert_file,omitempty"`
+	// Путь TLS к ключу
+	TLSKeyFile string `json:"tls_key_file,omitempty"`
+	// Путь JSON конфигу
+	JSONConfig string
+}
+
+// DefaultConfig возвращает конфигурацию по умолчанию
+func DefaultConfig() *Config {
+	return &Config{
+		ServerAddress:   "127.0.0.1:8080",
+		BaseURL:         "http://127.0.0.1:8080",
+		ShortURLLength:  8,
+		FileStoragePath: "",
+		LogLevel:        "DEBUG",
+		JWTSecret:       "jwt-secret-key",
+		AuditFile:       "",
+		AuditURL:        "",
+		EnableHTTPS:     false,
+		TLSCertFile:     "cert.pem",
+		TLSKeyFile:      "key.pem",
+	}
+}
+
+// ConfigParser интерфейс для парсеров конфигурации
+type ConfigParser interface {
+	Parse(cfg *Config) (*Config, error)
+}
+
+// NextParser базовая структура для парсеров
+type NextParser struct {
+	next ConfigParser
+}
+
+func (b *NextParser) Parse(cfg *Config) (*Config, error) {
+	if b.next != nil {
+		return b.next.Parse(cfg)
+	}
+	return cfg, nil
 }
 
 // NewConfig возвращает новый экземпляр конфигурации приложения.
 // Эта функция парсит флаги командной строки и переменные окружения для инициализации конфигурации.
-func NewConfig() Config {
-	cfg := Config{}
+func NewConfig() (*Config, error) {
+	cfg := DefaultConfig()
 
-	flag.StringVar(&cfg.ServerAddress, "a", "127.0.0.1:8080", "address to startup server")
-	flag.StringVar(&cfg.BaseURL, "b", "http://127.0.0.1:8080", "domain to use for shrten urls")
-	flag.StringVar(&cfg.FileStoragePath, "f", "", "file path to save storage")
-	flag.StringVar(&cfg.DBConnectionString, "d", "", "database connection string")
-	flag.StringVar(&cfg.LogLevel, "l", "DEBUG", "log level")
-	flag.StringVar(&cfg.JWTSecret, "jwtkey", "jwt-secret-key", "jwt secret key")
-	flag.StringVar(&cfg.AuditFile, "audit-file", "", "file to keep audit logs")
-	flag.StringVar(&cfg.AuditURL, "audit-url", "", "URL to pass audit logs")
-	flag.IntVar(&cfg.ShortURLLength, "c", 8, "length of generated short url")
-    flag.BoolVar(&cfg.EnableHTTPS, "s", false, "Enable HTTPS") 
-	flag.StringVar(&cfg.TLSCertFile, "tlscert", "cert.pem", "TLS certificate file")
-	flag.StringVar(&cfg.TLSKeyFile, "tlskey", "key.pem", "TLS private key file")
-	flag.Parse()
+	// Создаем цепочку вручную
+	envParser := &EnvConfigParser{}
+	flagsParser := &FlagsConfigParser{NextParser: NextParser{next: envParser}}
+	jsonParser := &JSONConfigParser{NextParser: NextParser{next: flagsParser}}
 
-	if envServerAddress, ok := os.LookupEnv("SERVER_ADDRESS"); ok {
-		cfg.ServerAddress = envServerAddress
-	}
-
-	if envBaseURL, ok := os.LookupEnv("BASE_URL"); ok {
-		cfg.BaseURL = envBaseURL
-	}
-
-	if fileStoragePath, ok := os.LookupEnv("FILE_STORAGE_PATH"); ok {
-		cfg.FileStoragePath = fileStoragePath
-	}
-
-	if LogLevel, ok := os.LookupEnv("LOG_LEVEL"); ok {
-		cfg.LogLevel = LogLevel
-	}
-
-	if dbConnectionString, ok := os.LookupEnv("DATABASE_DSN"); ok {
-		cfg.DBConnectionString = dbConnectionString
-	}
-
-	if jwtSecret, ok := os.LookupEnv("JWT_SECRET"); ok {
-		cfg.JWTSecret = jwtSecret
-	}
-
-	if auditFile, ok := os.LookupEnv("AUDIT_FILE"); ok {
-		cfg.AuditFile = auditFile
-	}
-
-	if auditURL, ok := os.LookupEnv("AUDIT_URL"); ok {
-		cfg.AuditURL = auditURL
-	}
-
-	if envEnableHTTPS := os.Getenv("ENABLE_HTTPS"); envEnableHTTPS == "true" {
-		cfg.EnableHTTPS = true
-	}
-	if envCertFile := os.Getenv("TLS_CERT_FILE"); envCertFile != "" {
-		cfg.TLSCertFile = envCertFile
-	}
-	if envKeyFile := os.Getenv("TLS_KEY_FILE"); envKeyFile != "" {
-		cfg.TLSKeyFile = envKeyFile
-	}
-
-	return cfg
+	return jsonParser.Parse(cfg)
 }

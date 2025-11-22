@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	pkghttp "github.com/oegegr/shortener/pkg/http"
 	"github.com/oegegr/shortener/internal/config"
 	"github.com/oegegr/shortener/internal/config/db"
 	sugar "github.com/oegegr/shortener/internal/config/logger"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
+	pkghttp "github.com/oegegr/shortener/pkg/http"
 	"go.uber.org/zap"
 )
 
@@ -65,7 +65,9 @@ func (builder *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, er
 
 	stopApp := func(ctx context.Context) {
 		logger.Sync()
-		dbConn.Close()
+		if dbConn != nil {
+			dbConn.Close()
+		}
 		urlDelStrategy.Stop()
 	}
 

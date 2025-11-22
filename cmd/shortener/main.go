@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -24,11 +25,16 @@ var (
 func main() {
 	printBuildInfo()
 
-	cfg := config.NewConfig()
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Failed to load app config: %v", err)
+		os.Exit(1)
+	}
+	printAppConfig(cfg)
 
 	appCtx := context.Background()
 
-	app, err := internal.NewShortenerAppBuilder(&cfg).Build(appCtx)
+	app, err := internal.NewShortenerAppBuilder(cfg).Build(appCtx)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 		os.Exit(1)
@@ -41,6 +47,15 @@ func main() {
 		log.Fatalf("Server failed to start: %v", err)
 		os.Exit(1)
 	}
+}
+
+// Функция для вывода информации о конфигурации приложения
+func printAppConfig(cfg *config.Config) {
+	jsonConfig, err := json.MarshalIndent(cfg, "", " ")
+	if err != nil {
+		log.Fatalf("Failed to print app config: %v", err)
+	}
+	fmt.Printf("Application Config: %s", jsonConfig)
 }
 
 // Функция для вывода информации о сборке
