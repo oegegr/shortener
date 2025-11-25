@@ -7,9 +7,12 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/oegegr/shortener/internal"
 	"github.com/oegegr/shortener/internal/config"
+	sugar "github.com/oegegr/shortener/internal/config/logger"
+	"go.uber.org/zap"
 )
 
 // Переменные для хранения информации о сборке
@@ -31,24 +34,43 @@ func main() {
 	}
 	printAppConfig(cfg)
 
-	appCtx := context.Background()
-
-	app, err := internal.NewShortenerAppBuilder(cfg).Build(appCtx)
+	logger, err := sugar.NewLogger(*cfg)
 	if err != nil {
-		fmt.Printf("Failed to create server: %v", err)
+		fmt.Printf("Failed to creat logger: %v", err)
 		os.Exit(1)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// Создаем контекст который отменяется по сигналам завершения
+	appCtx, stop := signal.NotifyContext(context.Background(),
+		syscall.SIGTERM, // Сигнал завершения (kill)
+		syscall.SIGINT,  // Сигнал прерывания (Ctrl+C)
+		syscall.SIGQUIT, // Сигнал выхода (Ctrl+\)
+	)
 	defer stop()
 
-	if err := app.Start(ctx); err != nil {
-		fmt.Printf("Server failed to start: %v", err)
+	app, stopApp, err := internal.NewShortenerAppBuilder(cfg, logger).Build(appCtx)
+	if err != nil {
+		logger.Fatal("failed to create application: %w", err)
 		os.Exit(1)
 	}
+	defer gracefulShutdown(stopApp, logger, 5*time.Second)
 
-	fmt.Println("Application stopped gracefully")
-	os.Exit(0)
+	if err := app.Start(appCtx); err != nil {
+		logger.Fatal("failed to start application: %w", err)
+		os.Exit(1)
+	}
+}
+
+// Функция для graceful остановки приложения
+func gracefulShutdown(
+	stopApp func(context.Context, *zap.SugaredLogger),
+	logger *zap.SugaredLogger,
+	gracefulShutdownTimeout time.Duration) {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
+	defer cancel()
+	logger.Info("Starting graceful shutdown process...")
+	stopApp(shutdownCtx, logger)
+	logger.Sync()
 }
 
 // Функция для вывода информации о конфигурации приложения

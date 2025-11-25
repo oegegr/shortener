@@ -57,7 +57,7 @@ run-postgresql:
 	  -e POSTGRES_DB=url \
 	  -p 127.0.0.1:5432:5432 \
 	  -v postgres-data:/var/lib/postgresql/data \
-	  postgres:latest 
+	  postgres:17
 	sleep 5
 
 # Generate development TLS certificate

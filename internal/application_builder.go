@@ -10,7 +10,6 @@ import (
 
 	"github.com/oegegr/shortener/internal/config"
 	"github.com/oegegr/shortener/internal/config/db"
-	sugar "github.com/oegegr/shortener/internal/config/logger"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
 	pkghttp "github.com/oegegr/shortener/pkg/http"
@@ -19,65 +18,62 @@ import (
 
 // ShotenerAppBuilder - билдер для создания ShortenerApp
 type ShotenerAppBuilder struct {
-	cfg *config.Config
+	cfg    *config.Config
+	logger *zap.SugaredLogger
 }
 
 // NewShortenerAppBuilder - конструктор билдера
-func NewShortenerAppBuilder(cfg *config.Config) *ShotenerAppBuilder {
-	return &ShotenerAppBuilder{cfg}
+func NewShortenerAppBuilder(cfg *config.Config, logger *zap.SugaredLogger) *ShotenerAppBuilder {
+	return &ShotenerAppBuilder{cfg, logger}
 }
 
 // Build - создает и конфигурирует ShortenerApp
-func (builder *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, error) {
-	logger, err := sugar.NewLogger(*builder.cfg)
-	if err != nil {
-		return nil, err
-	}
-
+func (b *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, func(context.Context, *zap.SugaredLogger), error) {
+	var err error
 	var dbConn *sql.DB
-	if builder.cfg.DBConnectionString != "" {
-		dbConn, err = db.NewDB(*builder.cfg, logger)
+	if b.cfg.DBConnectionString != "" {
+		dbConn, err = db.NewDB(*b.cfg, b.logger)
 		if err != nil {
-			logger.Error("failed to create db connection: %w", err)
-			return nil, err
+			b.logger.Error("failed to create db connection: %w", err)
+			return nil, nil, fmt.Errorf("failed to create db connection: %v", err)
 		}
 	}
 
-	repo, err := createURLRepository(*builder.cfg, *logger, dbConn)
+	repo, err := createURLRepository(*b.cfg, *b.logger, dbConn)
 	if err != nil {
-		logger.Error("failed to create repository: %w", err)
-		return nil, err
+		b.logger.Error("failed to create repository: %w", err)
+		return nil, nil, err
 	}
 
-	urlDelStrategy := createURLDeletionStrategy(*logger, repo)
+	urlDelStrategy := createURLDeletionStrategy(*b.logger, repo)
 
-	service := createShortnerService(*builder.cfg, *logger, repo, urlDelStrategy)
+	service := createShortnerService(*b.cfg, *b.logger, repo, urlDelStrategy)
 
-	jwtParser := createJWTParser(*builder.cfg, *logger)
+	jwtParser := createJWTParser(*b.cfg, *b.logger)
 
-	logAudit := createLogAudit(*builder.cfg)
+	logAudit := createLogAudit(*b.cfg)
 
-	router := NewShortenerRouter(*logger, service, jwtParser, repo, logAudit)
+	router := NewShortenerRouter(*b.logger, service, jwtParser, repo, logAudit)
 
-	server, err := createServer(router, *builder.cfg)
+	server, err := createServer(router, *b.cfg)
 	if err != nil {
-		logger.Error("failed to create server: %w", err)
-		return nil, err
+		b.logger.Error("failed to create server: %w", err)
+		return nil, nil, err
 	}
 
-	stopApp := func(stopCtx context.Context) error {
+	stopApp := func(stopCtx context.Context, logger *zap.SugaredLogger) {
 		var stopErrors []error
 
 		logger.Info("Starting application cleanup...")
 
 		if dbConn != nil {
-			logger.Info("Closing database connection...")
+			b.logger.Info("Closing database connection...")
 			if err := dbConn.Close(); err != nil {
 				stopErrors = append(stopErrors, fmt.Errorf("failed to close database: %w", err))
 			}
 		}
 
-		logger.Info("Stoping urlDelStrategy...")
+		b.logger.Info("Stoping urlDelStrategy...")
 		urlDelStrategy.Stop()
 
 		if server != nil {
@@ -95,15 +91,12 @@ func (builder *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, er
 			logger.Debugf("Logger sync warning: %v", err)
 		}
 
-		if len(stopErrors) == 0 {
-			return nil
+		if len(stopErrors) > 0 {
+			logger.Fatal("failed to stop gracefuly application with errors: %v", errors.Join(stopErrors...))
 		}
-
-		// Объединяем ошибки
-		return errors.Join(stopErrors...)
 	}
 
-	return NewShortenerApp(builder.cfg, server, dbConn, logger, stopApp), nil
+	return NewShortenerApp(b.cfg, server, dbConn, b.logger), stopApp, nil
 }
 
 func createServer(handler http.Handler, cfg config.Config) (pkghttp.Server, error) {
