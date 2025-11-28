@@ -2,141 +2,88 @@ package main
 
 import (
 	"context"
-	"database/sql"
+	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/oegegr/shortener/internal"
 	"github.com/oegegr/shortener/internal/config"
-	"github.com/oegegr/shortener/internal/config/db"
 	sugar "github.com/oegegr/shortener/internal/config/logger"
-	"github.com/oegegr/shortener/internal/repository"
-	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
 )
 
+// Переменные для хранения информации о сборке
+// Заполняются при сборке через ldflags
 var (
 	buildVersion string
 	buildDate    string
 	buildCommit  string
 )
 
-func createURLRepository(
-	c config.Config,
-	logger zap.SugaredLogger,
-	db *sql.DB,
-) (repository.URLRepository, error) {
-
-	if c.DBConnectionString != "" {
-		return repository.NewDBURLRepository(db, logger)
-	}
-
-	return repository.NewInMemoryURLRepository(c.FileStoragePath, logger)
-}
-func createURLDeletionStrategy(
-	logger zap.SugaredLogger,
-	repo repository.URLRepository,
-) *service.QueueDeletionStrategy {
-	workerNum := 5
-	taskNum := 1000
-	waitTimeout := 1 * time.Second
-	return service.NewQueueURLDeletionStrategy(repo, logger, workerNum, taskNum, waitTimeout)
-}
-
-func createShortnerService(
-	c config.Config,
-	logger zap.SugaredLogger,
-	repo repository.URLRepository,
-	urlDelStrategy service.URLDeletionStrategy,
-) service.URLShortener {
-
-	return service.NewShortenerService(
-		repo,
-		c.BaseURL,
-		c.ShortURLLength,
-		&service.RandomShortCodeProvider{},
-		urlDelStrategy,
-		logger,
-	)
-}
-
-func createLogAudit(c config.Config) service.LogAuditManager {
-	auditors := make([]service.LogAuditor, 0, 2)
-
-	if c.AuditFile != "" {
-		auditors = append(auditors, service.NewFileLogAuditor(c.AuditFile))
-	}
-
-	if c.AuditURL != "" {
-		auditors = append(auditors, service.NewHTTPLogAuditor(c.AuditURL))
-	}
-
-	return service.NewDefaultLogAuditManager(auditors)
-}
-
-func createJWTParser(
-	c config.Config,
-	logger zap.SugaredLogger,
-) service.JWTParser {
-	return service.NewJWTParser(c.JWTSecret, logger)
-}
-
+// Основная функция приложения
 func main() {
 	printBuildInfo()
-	c := config.NewConfig()
 
-	ctx, stop := context.WithCancel(context.Background())
+	cfg, err := config.NewConfig()
+	if err != nil {
+		fmt.Printf("Failed to load app config: %v", err)
+		os.Exit(1)
+	}
+	printAppConfig(cfg)
+
+	logger, err := sugar.NewLogger(*cfg)
+	if err != nil {
+		fmt.Printf("Failed to creat logger: %v", err)
+		os.Exit(1)
+	}
+
+	// Создаем контекст который отменяется по сигналам завершения
+	appCtx, stop := signal.NotifyContext(context.Background(),
+		syscall.SIGTERM, // Сигнал завершения (kill)
+		syscall.SIGINT,  // Сигнал прерывания (Ctrl+C)
+		syscall.SIGQUIT, // Сигнал выхода (Ctrl+\)
+	)
 	defer stop()
 
-	logger, err := sugar.NewLogger(c)
-	defer logger.Sync()
-
+	app, stopApp, err := internal.NewShortenerAppBuilder(cfg, logger).Build(appCtx)
 	if err != nil {
+		logger.Fatal("failed to create application: %w", err)
 		os.Exit(1)
 	}
+	defer gracefulShutdown(stopApp, logger, 5*time.Second)
 
-	var dbConn *sql.DB
-	if c.DBConnectionString != "" {
-		dbConn, err = db.NewDB(c, logger)
-		if err != nil {
-			logger.Error("failed to create db connection: %w", err)
-			os.Exit(1)
-		}
-
-		defer dbConn.Close()
-	}
-
-	repo, err := createURLRepository(c, *logger, dbConn)
-	if err != nil {
-		logger.Error("failed to create repository: %w", err)
+	if err := app.Start(appCtx); err != nil {
+		logger.Fatal("failed to start application: %w", err)
 		os.Exit(1)
 	}
-
-	urlDelStrategy := createURLDeletionStrategy(*logger, repo)
-	defer urlDelStrategy.Stop()
-
-	service := createShortnerService(c, *logger, repo, urlDelStrategy)
-
-	jwtParser := createJWTParser(c, *logger)
-
-	logAudit := createLogAudit(c)
-
-	router := internal.NewShortenerRouter(*logger, service, jwtParser, repo, logAudit)
-
-	go func() {
-		logger.Infoln("Server starting")
-		if err := http.ListenAndServe(c.ServerAddress, router); err != nil && err != http.ErrServerClosed {
-			logger.Infoln("Server stopped: %v\n", err)
-			stop()
-		}
-	}()
-
-	<-ctx.Done()
 }
 
+// Функция для graceful остановки приложения
+func gracefulShutdown(
+	stopApp func(context.Context, *zap.SugaredLogger),
+	logger *zap.SugaredLogger,
+	gracefulShutdownTimeout time.Duration) {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
+	defer cancel()
+	logger.Info("Starting graceful shutdown process...")
+	stopApp(shutdownCtx, logger)
+	logger.Sync()
+}
+
+// Функция для вывода информации о конфигурации приложения
+func printAppConfig(cfg *config.Config) {
+	jsonConfig, err := json.MarshalIndent(cfg, "", " ")
+	if err != nil {
+		fmt.Printf("Failed to print app config: %v", err)
+		return
+	}
+	fmt.Printf("Application Config: %s", jsonConfig)
+}
+
+// Функция для вывода информации о сборке
 func printBuildInfo() {
 	if buildVersion == "" {
 		buildVersion = "N/A"
