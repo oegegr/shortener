@@ -47,6 +47,9 @@ func (e *EnvConfigParser) Parse(cfg *Config) (*Config, error) {
 	if envKeyFile, ok := os.LookupEnv("TLS_KEY_FILE"); ok {
 		cfg.TLSKeyFile = envKeyFile
 	}
+	if trustedSubnet, ok := os.LookupEnv("TRUSTED_SUBNET"); ok {
+		cfg.TrustedSubnet = trustedSubnet
+	}
 
 	if jsonConfig, ok := os.LookupEnv("CONFIG"); ok {
 		cfg.JSONConfig = jsonConfig

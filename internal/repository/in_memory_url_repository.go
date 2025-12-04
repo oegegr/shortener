@@ -4,6 +4,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"sync"
 
@@ -186,6 +187,16 @@ func (repo *InMemoryURLRepository) FindURLByUser(ctx context.Context, userID str
 		return nil, ErrRepoNotFound
 	}
 	return result, nil
+}
+
+// GetUserCount возращает кол-во пользователей
+func (repo *InMemoryURLRepository) GetUserCount(ctx context.Context) (*int, error) {
+	return nil, errors.New("not implemented")
+}
+
+// GetURLCount возращает кол-во сокращенных URL
+func (repo *InMemoryURLRepository) GetURLCount(ctx context.Context) (*int, error) {
+	return nil, errors.New("not implemented")
 }
 
 // Exists проверяет, существует ли URL-адрес в репозитории.

@@ -11,6 +11,8 @@ import (
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
 	"go.uber.org/zap"
+
+	pkgnet "github.com/oegegr/shortener/pkg/net"
 )
 
 // NewShortenerRouter возвращает новый экземпляр роутера для приложения.
@@ -21,6 +23,7 @@ func NewShortenerRouter(
 	jwtParser service.JWTParser,
 	repo repository.URLRepository,
 	logAudit service.LogAuditManager,
+	trustedSubnet *pkgnet.Subnet,
 ) *chi.Mux {
 	shortenerHandler := handler.NewShortenerHandler(service, &middleware.AuthContextUserIDPovider{}, logAudit)
 	pingHandler := handler.NewPingHandler(repo)
@@ -28,6 +31,7 @@ func NewShortenerRouter(
 	router := chi.NewRouter()
 	router.Use(middleware.ZapLogger(logger))
 	typesToGzip := []string{"application/json", "text/html"}
+	trustedSubnetAuthorizer := middleware.TrusteSubnetAuthorizer(trustedSubnet, logger)
 	router.Use(
 		middleware.ZapLogger(logger),
 		middleware.GzipMiddleware(typesToGzip),
@@ -40,6 +44,7 @@ func NewShortenerRouter(
 	router.Delete("/api/user/urls", shortenerHandler.APIUserBatchDeleteURL)
 	router.Post("/*", shortenerHandler.ShortenURL)
 	router.Get("/{short_url}", shortenerHandler.RedirectToOriginalURL)
+	router.Get("/api/internal/stats", trustedSubnetAuthorizer(shortenerHandler.APIInternalStats))
 
 	return router
 }

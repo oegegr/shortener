@@ -42,3 +42,10 @@ func (m *MockURLService) DeleteUserURL(ctx context.Context, userID string, short
 	args := m.Called(ctx, userID, shortIDs)
 	return args.Error(1)
 }
+
+// GetStat возвращает статистику использования сервиса.
+func (m *MockURLService) GetStats(ctx context.Context) (*model.Stats, error) {
+	args := m.Called(ctx)
+	stats := args.Get(0).(model.Stats)
+	return &stats, args.Error(1)
+}

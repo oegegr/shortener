@@ -33,4 +33,8 @@ type URLRepository interface {
 	FindURLByUser(ctx context.Context, userID string) ([]model.URLItem, error)
 	// Exists проверяет, существует ли URL-адрес в репозитории.
 	Exists(ctx context.Context, id string) bool
+	// GetUserCount возращает кол-во пользователей
+	GetUserCount(ctx context.Context) (*int, error)
+	// GetURLCount возращает кол-во сокращенных URL
+	GetURLCount(ctx context.Context) (*int, error)
 }

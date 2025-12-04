@@ -102,6 +102,9 @@ func (j *JSONConfigParser) mergeConfig(main *Config, json *Config) {
 	if json.TLSKeyFile != "" {
 		main.TLSKeyFile = json.TLSKeyFile
 	}
+	if json.TrustedSubnet != "" {
+		main.TrustedSubnet = json.TrustedSubnet
+	}
 	main.EnableHTTPS = json.EnableHTTPS
 	if json.ShortURLLength > 0 {
 		main.ShortURLLength = json.ShortURLLength

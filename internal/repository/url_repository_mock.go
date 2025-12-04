@@ -54,3 +54,19 @@ func (m *MockURLRepository) Exists(ctx context.Context, id string) bool {
 	args := m.Called(ctx, id)
 	return args.Bool(0)
 }
+
+// GetUserCount возращает кол-во пользователей
+func (m *MockURLRepository) GetUserCount(ctx context.Context) (*int, error) {
+	args := m.Called(ctx)
+	count := args.Int(0)
+	return &count, args.Error(1)
+
+}
+
+// GetURLCount возращает кол-во сокращенных URL
+func (m *MockURLRepository) GetURLCount(ctx context.Context) (*int, error) {
+	args := m.Called(ctx)
+	count := args.Int(0)
+	return &count, args.Error(1)
+
+}
