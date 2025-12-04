@@ -13,6 +13,7 @@ import (
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
 	pkghttp "github.com/oegegr/shortener/pkg/http"
+	pkgnet "github.com/oegegr/shortener/pkg/net"
 	"go.uber.org/zap"
 )
 
@@ -53,7 +54,15 @@ func (b *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, func(con
 
 	logAudit := createLogAudit(*b.cfg)
 
-	router := NewShortenerRouter(*b.logger, service, jwtParser, repo, logAudit)
+	var trustedSubnet *pkgnet.Subnet
+	if b.cfg.TrustedSubnet != "" {
+		trustedSubnet, err = pkgnet.NewSubnet(b.cfg.TrustedSubnet)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to create trusted subnet: %v", err)
+		}
+	}
+
+	router := NewShortenerRouter(*b.logger, service, jwtParser, repo, logAudit, trustedSubnet)
 
 	server, err := createServer(router, *b.cfg)
 	if err != nil {

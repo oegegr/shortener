@@ -21,6 +21,7 @@ func (f *FlagsConfigParser) Parse(cfg *Config) (*Config, error) {
 	flag.BoolVar(&cfg.EnableHTTPS, "s", cfg.EnableHTTPS, "Enable HTTPS")
 	flag.StringVar(&cfg.TLSCertFile, "tlscert", cfg.TLSCertFile, "TLS certificate file")
 	flag.StringVar(&cfg.TLSKeyFile, "tlskey", cfg.TLSKeyFile, "TLS key file")
+	flag.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "Trusted subnet which has permission to process api")
 
 	var configFileShort string
 	var configFileLong string
