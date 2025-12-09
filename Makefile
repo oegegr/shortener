@@ -79,3 +79,53 @@ cert-info:
 cert-clean:
 	@echo "Cleaning up certificate files..."
 	rm -f cert.pem key.pem
+
+.PHONY: generate clean install-tools
+
+PROTO_FILE = api/shortener.proto
+GO_OUT = api
+GOPATH_BIN = $(shell go env GOPATH)/bin
+
+# Установить инструменты protoc
+install-tools:
+	@echo "Installing protoc tools..."
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	@echo "Tools installed to $(GOPATH_BIN)"
+
+# Проверить наличие инструментов
+check-tools:
+	@if [ ! -f "$(GOPATH_BIN)/protoc-gen-go" ]; then \
+		echo "protoc-gen-go not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(GOPATH_BIN)/protoc-gen-go-grpc" ]; then \
+		echo "protoc-gen-go-grpc not found. Run 'make install-tools' first."; \
+		exit 1; \
+	fi
+	@echo "All tools are available."
+
+# Скачать proto файлы
+download-protos:
+	@echo "Downloading required proto files..."
+	@mkdir -p third_party/google/protobuf
+	@if [ ! -f "third_party/google/protobuf/empty.proto" ]; then \
+		curl -s -o third_party/google/protobuf/empty.proto https://raw.githubusercontent.com/protocolbuffers/protobuf/main/src/google/protobuf/empty.proto; \
+		echo "Downloaded empty.proto"; \
+	else \
+		echo "empty.proto already exists"; \
+	fi
+
+# Генерация кода
+generate: install-tools check-tools download-protos
+	@echo "Generating Go code from protobuf..."
+	@PATH="$(GOPATH_BIN):$$PATH" protoc \
+		--go_out=$(GO_OUT) --go_opt=paths=source_relative \
+		--go-grpc_out=$(GO_OUT) --go-grpc_opt=paths=source_relative \
+		-I . -I ./third_party \
+		$(PROTO_FILE)
+	@echo "Code generation completed!"
+
+clean:
+	rm -rf $(GO_OUT)/*.pb.go
+	rm -rf third_party/

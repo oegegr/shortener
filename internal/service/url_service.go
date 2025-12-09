@@ -33,6 +33,8 @@ type URLShortener interface {
 	GetUserURL(ctx context.Context, userID string) ([]model.UserURL, error)
 	// DeleteUserURL удаляет URL-адреса для заданного идентификатора пользователя и списка сокращенных URL-адресов.
 	DeleteUserURL(ctx context.Context, userID string, shortIDs []string) error
+	// GetUserURL возвращает список URL-адресов для заданного идентификатора пользователя.
+	GetStats(ctx context.Context) (*model.Stats, error)
 }
 
 // URLDeletionStrategy представляет интерфейс для стратегии удаления URL-адресов.
@@ -152,6 +154,23 @@ func (s *ShortenURLService) GetOriginalURL(ctx context.Context, shortCode string
 	}
 
 	return urlItem.URL, nil
+}
+
+// GetOriginalURL возвращает оригинальный URL-адрес для заданного сокращенного URL-адреса.
+func (s *ShortenURLService) GetStats(ctx context.Context) (*model.Stats, error) {
+	urlCount, err := s.urlRepository.GetURLCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	userCount, err := s.urlRepository.GetUserCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Stats{
+		Urls:  *urlCount,
+		Users: *userCount,
+	}, nil
 }
 
 // getURLItem возвращает список элементов URL-адресов для заданного списка URL-адресов и идентификатора пользователя.

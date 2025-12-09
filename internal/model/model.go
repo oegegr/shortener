@@ -124,3 +124,10 @@ const LogActionShorten LogAction = "shorten"
 
 // LogActionFollow представляет действие перехода по URL-адресу.
 const LogActionFollow LogAction = "follow"
+
+type Stats struct {
+	Urls  int `json:"urls"`
+	Users int `json:"users"`
+}
+
+type InternalStatsResponse Stats

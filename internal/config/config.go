@@ -27,6 +27,10 @@ type Config struct {
 	TLSCertFile string `json:"tls_cert_file,omitempty"`
 	// Путь TLS к ключу
 	TLSKeyFile string `json:"tls_key_file,omitempty"`
+	// Доверенная сеть которой можно отвечать
+	TrustedSubnet string `json:"trusted_subnet,omitempty"`
+	// Доверенная сеть которой можно отвечать
+	GrpcPort int `json:"grpc_port,omitempty"`
 	// Путь JSON конфигу
 	JSONConfig string
 }
@@ -45,6 +49,8 @@ func DefaultConfig() *Config {
 		EnableHTTPS:     false,
 		TLSCertFile:     "cert.pem",
 		TLSKeyFile:      "key.pem",
+		GrpcPort:        0,
+		TrustedSubnet:   "",
 	}
 }
 

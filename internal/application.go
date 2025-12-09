@@ -14,6 +14,7 @@ import (
 type ShortenerApp struct {
 	cfg    *config.Config
 	server pkghttp.Server
+	grpcServer pkghttp.Server
 	dbConn *sql.DB
 	logger *zap.SugaredLogger
 }
@@ -22,10 +23,11 @@ type ShortenerApp struct {
 func NewShortenerApp(
 	cfg *config.Config,
 	server pkghttp.Server,
+	gprcServer pkghttp.Server,
 	dbConn *sql.DB,
 	logger *zap.SugaredLogger,
 ) *ShortenerApp {
-	return &ShortenerApp{cfg, server, dbConn, logger}
+	return &ShortenerApp{cfg, server, gprcServer, dbConn, logger}
 }
 
 // Start - запускает приложение
@@ -38,6 +40,15 @@ func (app *ShortenerApp) Start(appCtx context.Context) error {
 			serverErr <- err
 		}
 	}()
+
+	if app.grpcServer != nil {
+		go func() {
+			app.logger.Info("GRPC Server starting")
+			if err := app.grpcServer.Start(appCtx); err != nil && err != http.ErrServerClosed {
+				serverErr <- err
+			}
+		}()
+	} 
 
 	select {
 	case err := <-serverErr:

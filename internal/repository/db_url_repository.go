@@ -194,3 +194,41 @@ func (r *DBURLRepository) Exists(ctx context.Context, id string) bool {
 
 	return exists
 }
+
+// GetUserCount возращает кол-во пользователей
+func (r *DBURLRepository) GetUserCount(ctx context.Context) (*int, error) {
+	stmt, err := r.db.Prepare("SELECT COUNT(DISTINCT user_id) FROM url")
+	if err != nil {
+		r.logger.Errorf("sql validation error: %v", err)
+		return nil, err
+	}
+	defer stmt.Close()
+
+	var userCount int
+	err = stmt.QueryRow().Scan(&userCount)
+	if err != nil {
+		r.logger.Errorf("sql execution error: %v", err)
+		return nil, err
+	}
+
+	return &userCount, nil
+}
+
+// GetURLCount возращает кол-во сокращенных URL
+func (r *DBURLRepository) GetURLCount(ctx context.Context) (*int, error) {
+	stmt, err := r.db.Prepare("SELECT COUNT(url) FROM url")
+	if err != nil {
+		r.logger.Errorf("sql validation error: %v", err)
+		return nil, err
+	}
+	defer stmt.Close()
+
+	var urlCount int
+	err = stmt.QueryRow().Scan(&urlCount)
+	if err != nil {
+		r.logger.Errorf("sql execution error: %v", err)
+		return nil, err
+	}
+
+	return &urlCount, nil
+}

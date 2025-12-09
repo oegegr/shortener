@@ -150,6 +150,23 @@ func (app *ShortenerHandler) APIUserURL(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(resp)
 }
 
+// APIInternelStat возращает статистику сокращений.
+func (app *ShortenerHandler) APIInternalStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	stats, err := app.URLService.GetStats(ctx)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	resp := model.InternalStatsResponse(*stats)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
 // APIUserBatchDeleteURL обрабатывает HTTP-запрос на удаление URL-адресов пользователя в пакетном режиме.
 func (app *ShortenerHandler) APIUserBatchDeleteURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
