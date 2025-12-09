@@ -22,6 +22,7 @@ func (f *FlagsConfigParser) Parse(cfg *Config) (*Config, error) {
 	flag.StringVar(&cfg.TLSCertFile, "tlscert", cfg.TLSCertFile, "TLS certificate file")
 	flag.StringVar(&cfg.TLSKeyFile, "tlskey", cfg.TLSKeyFile, "TLS key file")
 	flag.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "Trusted subnet which has permission to process api")
+	flag.IntVar(&cfg.GrpcPort, "grpcport", cfg.GrpcPort, "If present configure grpc server")
 
 	var configFileShort string
 	var configFileLong string

@@ -6,15 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/oegegr/shortener/api"
 	"github.com/oegegr/shortener/internal/config"
 	"github.com/oegegr/shortener/internal/config/db"
+	"github.com/oegegr/shortener/internal/handler"
+	"github.com/oegegr/shortener/internal/middleware"
 	"github.com/oegegr/shortener/internal/repository"
 	"github.com/oegegr/shortener/internal/service"
 	pkghttp "github.com/oegegr/shortener/pkg/http"
 	pkgnet "github.com/oegegr/shortener/pkg/net"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 // ShotenerAppBuilder - билдер для создания ShortenerApp
@@ -70,6 +75,14 @@ func (b *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, func(con
 		return nil, nil, err
 	}
 
+	var grpcServer pkghttp.Server
+	if b.cfg.GrpcPort > 0 {
+		grpcServer, err = createGrpcServer(service, logAudit, jwtParser, *b.logger, *b.cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	stopApp := func(stopCtx context.Context, logger *zap.SugaredLogger) {
 		var stopErrors []error
 
@@ -95,6 +108,16 @@ func (b *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, func(con
 			}
 		}
 
+		if grpcServer != nil {
+			logger.Info("Shutting down GRPC server...")
+			shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer cancel()
+
+			if err := grpcServer.Stop(shutdownCtx); err != nil {
+				stopErrors = append(stopErrors, fmt.Errorf("GRPC server shutdown failed: %w", err))
+			}
+		}
+
 		logger.Info("Syncing logger...")
 		if err := logger.Sync(); err != nil {
 			logger.Debugf("Logger sync warning: %v", err)
@@ -105,7 +128,29 @@ func (b *ShotenerAppBuilder) Build(ctx context.Context) (*ShortenerApp, func(con
 		}
 	}
 
-	return NewShortenerApp(b.cfg, server, dbConn, b.logger), stopApp, nil
+	return NewShortenerApp(b.cfg, server, grpcServer, dbConn, b.logger), stopApp, nil
+}
+
+func createGrpcServer(
+	service service.URLShortener,
+	logAudit service.LogAuditManager, 
+	jwtParser service.JWTParser,
+	logger zap.SugaredLogger,
+	cfg config.Config,
+) (pkghttp.Server, error)  {
+	// Создаем gRPC сервер с интерцепторами
+	server := grpc.NewServer(grpc.UnaryInterceptor(middleware.GRPCAuthInterceptor(jwtParser, &logger)))
+	handler := handler.NewGRPCServer(service, &middleware.AuthContextUserIDPovider{}, logAudit, &logger)
+
+	api.RegisterShortenerServiceServer(server, handler)
+    grpcAddress := getGrpcAddress(cfg.ServerAddress, cfg.GrpcPort)
+	serverBuilder := pkghttp.NewGrpcServerBuilder(grpcAddress, server)
+
+	if cfg.EnableHTTPS {
+		serverBuilder.WithHTTPS(cfg.TLSCertFile, cfg.TLSKeyFile)
+	}
+
+	return serverBuilder.Build()
 }
 
 func createServer(handler http.Handler, cfg config.Config) (pkghttp.Server, error) {
@@ -186,4 +231,11 @@ func createJWTParser(
 	logger zap.SugaredLogger,
 ) service.JWTParser {
 	return service.NewJWTParser(c.JWTSecret, logger)
+}
+
+// создает сокет для запуска grpc сервера
+func getGrpcAddress(httpAddress string, grpcPort int) string {
+	parts := strings.Split(httpAddress, ":")
+	host := parts[0]
+	return fmt.Sprintf("%s:%d", host, grpcPort)
 }

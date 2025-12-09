@@ -6,10 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/oegegr/shortener/internal/service"
 )
@@ -85,6 +88,48 @@ func AuthMiddleware(logger zap.SugaredLogger, jwt service.JWTParser) func(http.H
 		}
 
 		return http.HandlerFunc(authHandler)
+	}
+}
+
+// GRPCAuthInterceptor предоставляет интерцептор для аутентификации gRPC запросов
+func GRPCAuthInterceptor(jwtParser service.JWTParser, logger *zap.SugaredLogger) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		var userID string
+		var token string
+
+		// Извлекаем токен из метаданных
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			if authHeaders := md.Get("authorization"); len(authHeaders) > 0 {
+				token = authHeaders[0]
+				// Убираем префикс "Bearer " если есть
+				token = strings.TrimPrefix(token, "Bearer ")
+				var err error
+				userID, err = jwtParser.UserFromJWTToken(token)
+				if err != nil {
+					logger.Debugf("Invalid JWT token: %v", err)
+				}
+			}
+		}
+
+		// Если токен не валиден или отсутствует, создаем нового пользователя
+		if userID == "" {
+			userID = uuid.New().String()
+			var err error
+			token, err = jwtParser.CreateNewJWTToken(userID)
+			if err != nil {
+				logger.Errorf("Failed to create JWT token: %v", err)
+				return handler(ctx, req)
+			}
+
+			// Устанавливаем новый токен в исходящие метаданные
+			header := metadata.Pairs("authorization", token)
+			ctx = metadata.NewOutgoingContext(ctx, header)
+		}
+
+		// Добавляем userID в контекст
+		ctx = context.WithValue(ctx, userIDKey, userID)
+		
+		return handler(ctx, req)
 	}
 }
 
