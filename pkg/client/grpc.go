@@ -19,6 +19,7 @@ type GRPCClient struct {
 	client  api.ShortenerServiceClient
 	address string
 	token   string
+	userID  string
 }
 
 // Config конфигурация клиента
@@ -26,50 +27,50 @@ type Config struct {
 	Address  string
 	UseTLS   bool
 	CertFile string
-	Insecure bool // Для self-signed сертификатов
+	Insecure bool
 	Timeout  time.Duration
+	Token    string
+	UserID   string
 }
 
-// NewGRPCClient создает новый gRPC клиент
+// NewGRPCClient создает новый gRPC клиент с использованием grpc.NewClient
 func NewGRPCClient(cfg Config) (*GRPCClient, error) {
-	var opts []grpc.DialOption
+	// Для grpc.NewClient используем grpc.WithTransportCredentials
+	var transportCreds credentials.TransportCredentials
 	
-	// Настраиваем безопасность
 	if cfg.UseTLS {
-		var creds credentials.TransportCredentials
 		if cfg.Insecure {
-			creds = credentials.NewTLS(&tls.Config{
+			transportCreds = credentials.NewTLS(&tls.Config{
 				InsecureSkipVerify: true,
 			})
 		} else if cfg.CertFile != "" {
 			var err error
-			creds, err = credentials.NewClientTLSFromFile(cfg.CertFile, "")
+			transportCreds, err = credentials.NewClientTLSFromFile(cfg.CertFile, "")
 			if err != nil {
 				return nil, fmt.Errorf("failed to load TLS cert: %w", err)
 			}
 		} else {
-			creds = credentials.NewTLS(&tls.Config{})
+			transportCreds = credentials.NewTLS(&tls.Config{})
 		}
-		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		transportCreds = insecure.NewCredentials()
 	}
 	
-	// Настраиваем таймауты
-	if cfg.Timeout > 0 {
-		opts = append(opts, grpc.WithTimeout(cfg.Timeout))
-	}
-	
-	// Устанавливаем соединение
-	conn, err := grpc.Dial(cfg.Address, opts...)
+	// Создаем соединение с помощью grpc.NewClient
+	conn, err := grpc.NewClient(
+		cfg.Address,
+		grpc.WithTransportCredentials(transportCreds),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to dial server: %w", err)
+		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
 	
 	return &GRPCClient{
 		conn:    conn,
 		client:  api.NewShortenerServiceClient(conn),
 		address: cfg.Address,
+		token:   cfg.Token,
+		userID:  cfg.UserID,
 	}, nil
 }
 
@@ -78,13 +79,31 @@ func (c *GRPCClient) SetToken(token string) {
 	c.token = token
 }
 
+// SetUserID устанавливает идентификатор пользователя
+func (c *GRPCClient) SetUserID(userID string) {
+	c.userID = userID
+}
+
+// GetUserID возвращает текущий userID
+func (c *GRPCClient) GetUserID() string {
+	return c.userID
+}
+
 // createContext создает контекст с метаданными для авторизации
 func (c *GRPCClient) createContext(ctx context.Context) context.Context {
+	md := metadata.New(nil)
+	
+	// Добавляем токен если есть
 	if c.token != "" {
-		md := metadata.Pairs("authorization", c.token)
-		return metadata.NewOutgoingContext(ctx, md)
+		md.Set("authorization", c.token)
 	}
-	return ctx
+	
+	// Добавляем userID если есть
+	if c.userID != "" {
+		md.Set("x-user-id", c.userID)
+	}
+	
+	return metadata.NewOutgoingContext(ctx, md)
 }
 
 // ShortenURL сокращает URL
@@ -133,7 +152,8 @@ func (c *GRPCClient) Close() error {
 
 // Ping проверяет доступность сервера
 func (c *GRPCClient) Ping(ctx context.Context) error {
-	// Для простоты используем ListUserURLs как ping
-	_, err := c.ListUserURLs(ctx)
+	// Пытаемся вызвать простой метод
+	req := &api.Empty{}
+	_, err := c.client.ListUserURLs(c.createContext(ctx), req)
 	return err
 }
