@@ -9,7 +9,7 @@ import (
 )
 
 // ServerBuilder конфигурирует HTTP сервер с поддержкой TLS
-type HttpServerBuilder struct {
+type HTTPServerBuilder struct {
 	serverAddress string
 	enableHTTPS   bool
 	tlsCertFile   string
@@ -20,8 +20,8 @@ type HttpServerBuilder struct {
 }
 
 // NewServerBuilder создает новый билдер сервера
-func NewServerBuilder(serverAddress string) *HttpServerBuilder {
-	return &HttpServerBuilder{
+func NewServerBuilder(serverAddress string) *HTTPServerBuilder {
+	return &HTTPServerBuilder{
 		serverAddress: serverAddress,
 		readTimeout:   10 * time.Second,
 		writeTimeout:  10 * time.Second,
@@ -30,7 +30,7 @@ func NewServerBuilder(serverAddress string) *HttpServerBuilder {
 }
 
 // WithHTTPS включает поддержку HTTPS с указанием файлов сертификатов
-func (b *HttpServerBuilder) WithHTTPS(certFile, keyFile string) *HttpServerBuilder {
+func (b *HTTPServerBuilder) WithHTTPS(certFile, keyFile string) *HTTPServerBuilder {
 	b.enableHTTPS = true
 	b.tlsCertFile = certFile
 	b.tlsKeyFile = keyFile
@@ -38,7 +38,7 @@ func (b *HttpServerBuilder) WithHTTPS(certFile, keyFile string) *HttpServerBuild
 }
 
 // WithTimeouts устанавливает таймауты для сервера
-func (b *HttpServerBuilder) WithTimeouts(read, write, idle time.Duration) *HttpServerBuilder {
+func (b *HTTPServerBuilder) WithTimeouts(read, write, idle time.Duration) *HTTPServerBuilder {
 	b.readTimeout = read
 	b.writeTimeout = write
 	b.idleTimeout = idle
@@ -46,7 +46,7 @@ func (b *HttpServerBuilder) WithTimeouts(read, write, idle time.Duration) *HttpS
 }
 
 // Build создает и настраивает HTTP сервер
-func (b *HttpServerBuilder) Build(handler http.Handler) (Server, error) {
+func (b *HTTPServerBuilder) Build(handler http.Handler) (Server, error) {
 	server := &http.Server{
 		Addr:         b.serverAddress,
 		Handler:      handler,
@@ -70,7 +70,7 @@ func (b *HttpServerBuilder) Build(handler http.Handler) (Server, error) {
 }
 
 // configureTLS настраивает TLS для сервера
-func (b *HttpServerBuilder) configureTLS(server *http.Server) error {
+func (b *HTTPServerBuilder) configureTLS(server *http.Server) error {
 	if err := b.checkTLSFiles(); err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (b *HttpServerBuilder) configureTLS(server *http.Server) error {
 }
 
 // checkTLSFiles проверяет существование файлов сертификатов
-func (b *HttpServerBuilder) checkTLSFiles() error {
+func (b *HTTPServerBuilder) checkTLSFiles() error {
 	if _, err := os.Stat(b.tlsCertFile); os.IsNotExist(err) {
 		return fmt.Errorf("TLS certificate file not found: %s", b.tlsCertFile)
 	}
